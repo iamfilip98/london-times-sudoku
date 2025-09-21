@@ -5,10 +5,11 @@ class SudokuGenerator {
         this.EMPTY = 0;
 
         // Difficulty settings for puzzle generation
+        // Adjusted to ensure Hard difficulty doesn't require techniques beyond hidden triplets
         this.DIFFICULTY_SETTINGS = {
-            easy: { clues: 40, minClues: 35 },
-            medium: { clues: 32, minClues: 28 },
-            hard: { clues: 26, minClues: 22 }
+            easy: { clues: 42, minClues: 38 },
+            medium: { clues: 34, minClues: 30 },
+            hard: { clues: 28, minClues: 25 }
         };
     }
 

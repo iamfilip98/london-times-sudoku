@@ -187,14 +187,14 @@ class SudokuGame {
     }
 
     setNumber(row, col, number) {
-        // Save state for undo (mark as number entry)
+        // Check for conflicts BEFORE making any changes
+        const conflicts = this.generator.getConflicts(this.currentGrid, row, col, number);
+
+        // Save state for undo (mark as number entry) - include mistakes in the saved state
         this.saveState(true);
 
         // Clear any candidates for this cell
         delete this.candidates[`${row}-${col}`];
-
-        // Check for conflicts BEFORE placing the number
-        const conflicts = this.generator.getConflicts(this.currentGrid, row, col, number);
 
         // Set the number
         this.currentGrid[row][col] = number;
@@ -236,6 +236,9 @@ class SudokuGame {
     }
 
     toggleCandidate(row, col, number) {
+        // Save state before making changes to candidates
+        this.saveState(false);
+
         const key = `${row}-${col}`;
 
         if (!this.candidates[key]) {
@@ -252,7 +255,6 @@ class SudokuGame {
         }
 
         this.renderCell(row, col);
-        this.saveState();
     }
 
     clearCell(row, col) {
@@ -456,13 +458,29 @@ class SudokuGame {
         const isGiven = this.puzzle[row][col] !== this.EMPTY;
         const candidates = this.candidates[`${row}-${col}`] || new Set();
 
-        // Update cell classes
-        cell.className = [
+        // Preserve existing error state and other dynamic classes
+        const hasError = cell.classList.contains('error');
+        const hasConflict = cell.classList.contains('conflict');
+        const isSelected = cell.classList.contains('selected');
+        const isRelated = cell.classList.contains('related');
+        const isSameNumber = cell.classList.contains('same-number');
+
+        // Update base cell classes
+        const baseClasses = [
             'sudoku-cell',
             isGiven ? 'given' : 'user-input',
             row % this.BOX_SIZE === this.BOX_SIZE - 1 && row < this.SIZE - 1 ? 'bottom-border' : '',
             col % this.BOX_SIZE === this.BOX_SIZE - 1 && col < this.SIZE - 1 ? 'right-border' : ''
-        ].filter(Boolean).join(' ');
+        ].filter(Boolean);
+
+        // Preserve dynamic states
+        if (hasError) baseClasses.push('error');
+        if (hasConflict) baseClasses.push('conflict');
+        if (isSelected) baseClasses.push('selected');
+        if (isRelated) baseClasses.push('related');
+        if (isSameNumber) baseClasses.push('same-number');
+
+        cell.className = baseClasses.join(' ');
 
         // Update content
         if (value !== this.EMPTY) {
@@ -724,6 +742,9 @@ class SudokuGame {
 
         this.renderGrid();
         this.updateUI();
+
+        // Update number buttons to reflect current state
+        this.updateNumberButtons();
 
         // Restore selection if exists
         if (this.selectedCell) {
@@ -1101,6 +1122,9 @@ class SudokuGame {
     }
 
     toggleGlobalCandidates() {
+        // Save state before toggling to preserve undo history
+        this.saveState(false);
+
         this.globalCandidatesVisible = !this.globalCandidatesVisible;
 
         if (this.globalCandidatesVisible) {
@@ -1131,14 +1155,27 @@ class SudokuGame {
     }
 
     hideGlobalCandidates() {
-        // Keep only manually entered candidates (for medium/hard difficulty)
-        // or remove all candidates for easy difficulty
-        if (this.difficulty === 'easy') {
-            this.candidates = {};
-        } else {
-            // For medium/hard, keep the initial auto-generated candidates
-            // This preserves the difficulty-specific behavior
-            this.generateInitialCandidates();
+        // Store manually entered candidates before clearing all
+        const manualCandidates = {};
+
+        // Preserve candidates that were manually entered (not part of global show)
+        // This allows users to keep their own notes while hiding auto-generated ones
+        for (const key in this.candidates) {
+            const [row, col] = key.split('-').map(Number);
+            if (this.currentGrid[row][col] === this.EMPTY && this.puzzle[row][col] === this.EMPTY) {
+                // Only preserve if this was likely a manual entry (smaller set of candidates)
+                if (this.candidates[key].size <= 3) {
+                    manualCandidates[key] = new Set(this.candidates[key]);
+                }
+            }
+        }
+
+        // Clear all candidates first
+        this.candidates = {};
+
+        // Restore manual candidates for all difficulty levels
+        for (const key in manualCandidates) {
+            this.candidates[key] = manualCandidates[key];
         }
     }
 
