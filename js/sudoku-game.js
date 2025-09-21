@@ -148,6 +148,11 @@ class SudokuGame {
         this.currentMode = 'normal';
         this.isPaused = false;
 
+        // Auto-generate candidates for Medium and Hard difficulty
+        if (difficulty === 'medium' || difficulty === 'hard') {
+            this.generateInitialCandidates();
+        }
+
         // Reset history
         this.history = [];
         this.historyIndex = -1;
@@ -195,8 +200,8 @@ class SudokuGame {
             this.mistakes++;
             this.updateMistakesDisplay();
 
-            // Mark the cell as error
-            this.markCellAsError(row, col);
+            // Mark the cell as error immediately
+            this.markCellAsError(row, col, true);
 
             // Highlight all conflicting cells
             this.highlightConflicts([...conflicts, [row, col]]);
@@ -204,12 +209,7 @@ class SudokuGame {
             // Show error message
             this.showErrorMessage(`Invalid placement! This number conflicts with existing numbers.`);
 
-            // Auto-clear after 3 seconds if user doesn't fix it
-            setTimeout(() => {
-                if (this.currentGrid[row][col] === number) {
-                    this.clearErrorHighlights();
-                }
-            }, 3000);
+            // Keep error highlighting visible until the user fixes it
         } else {
             // Valid placement - clear any existing error states
             this.clearErrorHighlights();
@@ -259,6 +259,13 @@ class SudokuGame {
         } else {
             // Clear the number
             this.currentGrid[row][col] = this.EMPTY;
+
+            // Clear error highlighting if this cell had an error
+            const cell = document.querySelector(`[data-row="${row}"][data-col="${col}"]`);
+            if (cell && cell.dataset.hasError) {
+                cell.classList.remove('error');
+                delete cell.dataset.hasError;
+            }
         }
 
         this.renderCell(row, col);
@@ -314,11 +321,18 @@ class SudokuGame {
         // Highlight cells with same number
         const currentValue = this.currentGrid[row][col];
         if (currentValue !== this.EMPTY) {
-            for (let r = 0; r < this.SIZE; r++) {
-                for (let c = 0; c < this.SIZE; c++) {
-                    if (this.currentGrid[r][c] === currentValue) {
-                        const sameCell = document.querySelector(`[data-row="${r}"][data-col="${c}"]`);
-                        if (sameCell) sameCell.classList.add('same-number');
+            this.highlightSameNumbers(currentValue);
+        }
+    }
+
+    highlightSameNumbers(number) {
+        // Highlight all cells with the same number across the entire grid
+        for (let r = 0; r < this.SIZE; r++) {
+            for (let c = 0; c < this.SIZE; c++) {
+                if (this.currentGrid[r][c] === number) {
+                    const sameCell = document.querySelector(`[data-row="${r}"][data-col="${c}"]`);
+                    if (sameCell) {
+                        sameCell.classList.add('same-number');
                     }
                 }
             }
@@ -327,7 +341,8 @@ class SudokuGame {
 
     clearHighlights() {
         document.querySelectorAll('.sudoku-cell').forEach(cell => {
-            cell.classList.remove('selected', 'related', 'same-number', 'conflict', 'error');
+            cell.classList.remove('selected', 'related', 'same-number', 'conflict');
+            // Don't remove 'error' class here - let it persist until fixed
         });
     }
 
@@ -592,7 +607,8 @@ class SudokuGame {
     updateMistakesDisplay() {
         const mistakesElement = document.getElementById('mistakes-count');
         if (mistakesElement) {
-            mistakesElement.textContent = this.mistakes;
+            // Display decimal values properly (e.g., 1.5 instead of 1.5000000001)
+            mistakesElement.textContent = Number(this.mistakes.toFixed(1));
         }
     }
 
@@ -600,12 +616,12 @@ class SudokuGame {
         const modeButton = document.getElementById('mode-toggle');
         if (modeButton) {
             if (this.currentMode === 'normal') {
-                modeButton.innerHTML = '<i class="fas fa-pencil-alt"></i> NOTES';
-                modeButton.title = 'Switch to Notes Mode';
+                modeButton.innerHTML = '<i class="fas fa-pencil-alt"></i> Normal';
+                modeButton.title = 'Currently in Normal Mode - Click for Candidate Mode';
                 modeButton.classList.remove('candidate-mode');
             } else {
-                modeButton.innerHTML = '<i class="fas fa-edit"></i> NUMBERS';
-                modeButton.title = 'Switch to Numbers Mode';
+                modeButton.innerHTML = '<i class="fas fa-edit"></i> Candidate';
+                modeButton.title = 'Currently in Candidate Mode - Click for Normal Mode';
                 modeButton.classList.add('candidate-mode');
             }
         }
@@ -710,22 +726,26 @@ class SudokuGame {
         this.saveState();
         this.hintsUsed++;
 
+        // Add 0.5 penalty for using a hint
+        this.mistakes += 0.5;
+        this.updateMistakesDisplay();
+
         if (hint.type === 'naked_single') {
             // Fill in a cell that has only one possible value
             this.currentGrid[hint.row][hint.col] = hint.value;
-            this.showMessage(`Hint: This cell can only be ${hint.value} (naked single)`, 'success');
+            this.showMessage(`Hint: This cell can only be ${hint.value} (naked single) - 0.5 mistake penalty`, 'success');
         } else if (hint.type === 'hidden_single') {
             // Fill in a cell where a number can only go in one place
             this.currentGrid[hint.row][hint.col] = hint.value;
-            this.showMessage(`Hint: ${hint.value} can only go here in this ${hint.region}`, 'success');
+            this.showMessage(`Hint: ${hint.value} can only go here in this ${hint.region} - 0.5 mistake penalty`, 'success');
         } else if (hint.type === 'candidate_elimination') {
             // Show candidates for a specific cell
             this.addCandidatesForCell(hint.row, hint.col);
-            this.showMessage(`Hint: Consider these possible numbers for this cell`, 'info');
+            this.showMessage(`Hint: Consider these possible numbers for this cell - 0.5 mistake penalty`, 'info');
         } else if (hint.type === 'easy_fill') {
             // Last resort - fill an easy cell
             this.currentGrid[hint.row][hint.col] = hint.value;
-            this.showMessage(`Hint: Try this number here`, 'success');
+            this.showMessage(`Hint: Try this number here - 0.5 mistake penalty`, 'success');
         }
 
         this.renderCell(hint.row, hint.col);
@@ -936,10 +956,15 @@ class SudokuGame {
         this.showMessage(message, 'success');
     }
 
-    markCellAsError(row, col) {
+    markCellAsError(row, col, persistent = false) {
         const cell = document.querySelector(`[data-row="${row}"][data-col="${col}"]`);
         if (cell) {
             cell.classList.add('error');
+
+            // Store error state for this cell
+            if (persistent) {
+                cell.dataset.hasError = 'true';
+            }
         }
     }
 
@@ -998,6 +1023,21 @@ class SudokuGame {
         this.currentPlayer = player;
     }
 
+    generateInitialCandidates() {
+        // Generate candidates for all empty cells
+        for (let row = 0; row < this.SIZE; row++) {
+            for (let col = 0; col < this.SIZE; col++) {
+                if (this.currentGrid[row][col] === this.EMPTY) {
+                    const possibleValues = this.getPossibleValues(row, col);
+                    if (possibleValues.length > 0) {
+                        const key = `${row}-${col}`;
+                        this.candidates[key] = new Set(possibleValues);
+                    }
+                }
+            }
+        }
+    }
+
     resetGame() {
         this.stopTimer();
         this.currentGrid = this.puzzle.map(row => [...row]);
@@ -1008,6 +1048,11 @@ class SudokuGame {
         this.hintsUsed = 0;
         this.isPaused = false;
         this.currentMode = 'normal';
+
+        // Auto-generate candidates for Medium and Hard difficulty
+        if (this.difficulty === 'medium' || this.difficulty === 'hard') {
+            this.generateInitialCandidates();
+        }
 
         // Reset history
         this.history = [];
