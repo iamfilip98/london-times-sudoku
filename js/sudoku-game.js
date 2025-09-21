@@ -16,9 +16,11 @@ class SudokuGame {
         this.elapsedTime = 0;
         this.timerInterval = null;
         this.isPaused = false;
-        this.mistakes = 0;
+        this.mistakes = 0; // UI-displayed error count
+        this.scoreCalculationMistakes = 0; // Total mistakes including hint penalties for scoring
         this.hintsUsed = 0;
         this.currentMode = 'normal'; // 'normal' or 'candidate'
+        this.globalCandidatesVisible = false;
 
         // History for undo/redo
         this.history = [];
@@ -144,8 +146,10 @@ class SudokuGame {
         this.selectedCell = null;
         this.isComplete = false;
         this.mistakes = 0;
+        this.scoreCalculationMistakes = 0;
         this.hintsUsed = 0;
         this.currentMode = 'normal';
+        this.globalCandidatesVisible = false;
         this.isPaused = false;
 
         // Auto-generate candidates for Medium and Hard difficulty
@@ -198,6 +202,7 @@ class SudokuGame {
         // Real-time error checking and feedback
         if (conflicts.length > 0) {
             this.mistakes++;
+            this.scoreCalculationMistakes++;
             this.updateMistakesDisplay();
 
             // Mark the cell as error immediately with red text
@@ -211,8 +216,8 @@ class SudokuGame {
 
             // Keep error highlighting visible until the user fixes it
         } else {
-            // Valid placement - clear any existing error states
-            this.clearErrorHighlights();
+            // Valid placement - clear error state only for this cell
+            this.clearCellError(row, col);
             this.showSuccessMessage(`Good move!`);
         }
 
@@ -222,6 +227,9 @@ class SudokuGame {
 
         // Auto-update candidates for related cells
         this.updateCandidatesForRelatedCells(row, col, number);
+
+        // Update number buttons immediately
+        this.updateNumberButtons();
 
         // Check if puzzle is complete
         this.checkCompletion();
@@ -270,6 +278,11 @@ class SudokuGame {
 
         this.renderCell(row, col);
         this.updateRelatedCells(row, col);
+
+        // Update number buttons when clearing numbers
+        if (this.currentMode !== 'candidate') {
+            this.updateNumberButtons();
+        }
     }
 
     toggleMode() {
@@ -530,7 +543,7 @@ class SudokuGame {
             difficulty: this.difficulty,
             player: this.currentPlayer,
             time: totalTime,
-            mistakes: this.mistakes,
+            mistakes: this.scoreCalculationMistakes, // Use score calculation mistakes for final score
             hintsUsed: this.hintsUsed,
             completed: true
         };
@@ -631,6 +644,7 @@ class SudokuGame {
         this.updateTimerDisplay();
         this.updateMistakesDisplay();
         this.updateModeDisplay();
+        this.updateGlobalCandidatesButton();
 
         // Update button states
         const pauseButton = document.getElementById('pause-button');
@@ -675,6 +689,7 @@ class SudokuGame {
             grid: this.currentGrid.map(row => [...row]),
             candidates: JSON.parse(JSON.stringify(this.candidates)),
             mistakes: this.mistakes,
+            scoreCalculationMistakes: this.scoreCalculationMistakes,
             isNumberEntry: isNumberEntry
         });
 
@@ -687,14 +702,9 @@ class SudokuGame {
     }
 
     undo() {
-        // Find the most recent number entry to undo
-        let targetIndex = this.historyIndex - 1;
-        while (targetIndex >= 0 && !this.history[targetIndex].isNumberEntry) {
-            targetIndex--;
-        }
-
-        if (targetIndex >= 0) {
-            this.historyIndex = targetIndex;
+        // Undo exactly one action at a time
+        if (this.historyIndex > 0) {
+            this.historyIndex--;
             this.restoreState(this.history[this.historyIndex]);
         }
     }
@@ -710,6 +720,7 @@ class SudokuGame {
         this.currentGrid = state.grid.map(row => [...row]);
         this.candidates = JSON.parse(JSON.stringify(state.candidates));
         this.mistakes = state.mistakes;
+        this.scoreCalculationMistakes = state.scoreCalculationMistakes || state.mistakes; // Fallback for old saves
 
         this.renderGrid();
         this.updateUI();
@@ -733,26 +744,25 @@ class SudokuGame {
         this.saveState();
         this.hintsUsed++;
 
-        // Add 0.5 penalty for using a hint
-        this.mistakes += 0.5;
-        this.updateMistakesDisplay();
+        // Add 0.5 penalty for using a hint (only affects score calculation, not UI display)
+        this.scoreCalculationMistakes += 0.5;
 
         if (hint.type === 'naked_single') {
             // Fill in a cell that has only one possible value
             this.currentGrid[hint.row][hint.col] = hint.value;
-            this.showMessage(`Hint: This cell can only be ${hint.value} (naked single) - 0.5 mistake penalty`, 'success');
+            this.showMessage(`Hint: This cell can only be ${hint.value} (naked single)`, 'success');
         } else if (hint.type === 'hidden_single') {
             // Fill in a cell where a number can only go in one place
             this.currentGrid[hint.row][hint.col] = hint.value;
-            this.showMessage(`Hint: ${hint.value} can only go here in this ${hint.region} - 0.5 mistake penalty`, 'success');
+            this.showMessage(`Hint: ${hint.value} can only go here in this ${hint.region}`, 'success');
         } else if (hint.type === 'candidate_elimination') {
             // Show candidates for a specific cell
             this.addCandidatesForCell(hint.row, hint.col);
-            this.showMessage(`Hint: Consider these possible numbers for this cell - 0.5 mistake penalty`, 'info');
+            this.showMessage(`Hint: Consider these possible numbers for this cell`, 'info');
         } else if (hint.type === 'easy_fill') {
             // Last resort - fill an easy cell
             this.currentGrid[hint.row][hint.col] = hint.value;
-            this.showMessage(`Hint: Try this number here - 0.5 mistake penalty`, 'success');
+            this.showMessage(`Hint: Try this number here`, 'success');
         }
 
         this.renderCell(hint.row, hint.col);
@@ -930,6 +940,9 @@ class SudokuGame {
         delete this.candidates[`${row}-${col}`];
         this.hintsUsed++;
 
+        // Add hint penalty only to score calculation, not UI display
+        this.scoreCalculationMistakes += 0.5;
+
         this.renderCell(row, col);
         this.updateRelatedCells(row, col);
         this.checkCompletion();
@@ -979,10 +992,19 @@ class SudokuGame {
     clearErrorHighlights() {
         document.querySelectorAll('.sudoku-cell.error').forEach(cell => {
             cell.classList.remove('error');
+            delete cell.dataset.hasError;
         });
         document.querySelectorAll('.sudoku-cell.conflict').forEach(cell => {
             cell.classList.remove('conflict');
         });
+    }
+
+    clearCellError(row, col) {
+        const cell = document.querySelector(`[data-row="${row}"][data-col="${col}"]`);
+        if (cell) {
+            cell.classList.remove('error', 'conflict');
+            delete cell.dataset.hasError;
+        }
     }
 
     updateCandidatesForRelatedCells(row, col, number) {
@@ -1053,9 +1075,11 @@ class SudokuGame {
         this.selectedCell = null;
         this.isComplete = false;
         this.mistakes = 0;
+        this.scoreCalculationMistakes = 0;
         this.hintsUsed = 0;
         this.isPaused = false;
         this.currentMode = 'normal';
+        this.globalCandidatesVisible = false;
 
         // Auto-generate candidates for Medium and Hard difficulty
         if (this.difficulty === 'medium' || this.difficulty === 'hard') {
@@ -1074,6 +1098,61 @@ class SudokuGame {
 
         this.renderGrid();
         this.updateUI();
+    }
+
+    toggleGlobalCandidates() {
+        this.globalCandidatesVisible = !this.globalCandidatesVisible;
+
+        if (this.globalCandidatesVisible) {
+            // Show all possible candidates in empty cells
+            this.showAllCandidates();
+        } else {
+            // Hide all candidates (except manually entered ones on hard/medium)
+            this.hideGlobalCandidates();
+        }
+
+        this.updateGlobalCandidatesButton();
+        this.renderGrid();
+    }
+
+    showAllCandidates() {
+        // Generate candidates for all empty cells
+        for (let row = 0; row < this.SIZE; row++) {
+            for (let col = 0; col < this.SIZE; col++) {
+                if (this.currentGrid[row][col] === this.EMPTY) {
+                    const possibleValues = this.getPossibleValues(row, col);
+                    if (possibleValues.length > 0) {
+                        const key = `${row}-${col}`;
+                        this.candidates[key] = new Set(possibleValues);
+                    }
+                }
+            }
+        }
+    }
+
+    hideGlobalCandidates() {
+        // Keep only manually entered candidates (for medium/hard difficulty)
+        // or remove all candidates for easy difficulty
+        if (this.difficulty === 'easy') {
+            this.candidates = {};
+        } else {
+            // For medium/hard, keep the initial auto-generated candidates
+            // This preserves the difficulty-specific behavior
+            this.generateInitialCandidates();
+        }
+    }
+
+    updateGlobalCandidatesButton() {
+        const button = document.getElementById('global-candidates-button');
+        if (button) {
+            if (this.globalCandidatesVisible) {
+                button.innerHTML = '<i class="fas fa-eye-slash"></i> Hide All Candidates';
+                button.classList.add('active');
+            } else {
+                button.innerHTML = '<i class="fas fa-eye"></i> Show All Candidates';
+                button.classList.remove('active');
+            }
+        }
     }
 }
 

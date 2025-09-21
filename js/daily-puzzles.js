@@ -97,6 +97,11 @@ class DailyPuzzlesManager {
         if (quitBtn) {
             quitBtn.addEventListener('click', () => this.quitGame());
         }
+
+        const globalCandidatesBtn = document.getElementById('global-candidates-button');
+        if (globalCandidatesBtn) {
+            globalCandidatesBtn.addEventListener('click', () => this.toggleGlobalCandidates());
+        }
     }
 
     initializeSudokuGame() {
@@ -232,6 +237,12 @@ class DailyPuzzlesManager {
     redo() {
         if (this.sudokuGame) {
             this.sudokuGame.redo();
+        }
+    }
+
+    toggleGlobalCandidates() {
+        if (this.sudokuGame) {
+            this.sudokuGame.toggleGlobalCandidates();
         }
     }
 
