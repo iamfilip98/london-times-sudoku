@@ -60,7 +60,7 @@ class SudokuChampionship {
         // Initialize battle results
         const winnerElement = document.getElementById('winnerAnnouncement');
         if (winnerElement) {
-            winnerElement.querySelector('.winner-text').textContent = 'Enter scores to see winner!';
+            winnerElement.querySelector('.winner-text').textContent = 'Play games to see today\'s winner!';
         }
     }
 

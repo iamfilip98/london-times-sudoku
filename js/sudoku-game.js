@@ -183,8 +183,8 @@ class SudokuGame {
     }
 
     setNumber(row, col, number) {
-        // Save state for undo
-        this.saveState();
+        // Save state for undo (mark as number entry)
+        this.saveState(true);
 
         // Clear any candidates for this cell
         delete this.candidates[`${row}-${col}`];
@@ -200,7 +200,7 @@ class SudokuGame {
             this.mistakes++;
             this.updateMistakesDisplay();
 
-            // Mark the cell as error immediately
+            // Mark the cell as error immediately with red text
             this.markCellAsError(row, col, true);
 
             // Highlight all conflicting cells
@@ -251,13 +251,13 @@ class SudokuGame {
         // Can't clear given clues
         if (this.puzzle[row][col] !== this.EMPTY) return;
 
-        this.saveState();
-
         if (this.currentMode === 'candidate') {
-            // Clear all candidates
+            // Clear all candidates (don't save as number entry)
+            this.saveState(false);
             delete this.candidates[`${row}-${col}`];
         } else {
-            // Clear the number
+            // Clear the number (save as number entry since it affects the number grid)
+            this.saveState(true);
             this.currentGrid[row][col] = this.EMPTY;
 
             // Clear error highlighting if this cell had an error
@@ -616,11 +616,11 @@ class SudokuGame {
         const modeButton = document.getElementById('mode-toggle');
         if (modeButton) {
             if (this.currentMode === 'normal') {
-                modeButton.innerHTML = '<i class="fas fa-pencil-alt"></i> Normal';
+                modeButton.innerHTML = '<i class="fas fa-edit"></i> Normal';
                 modeButton.title = 'Currently in Normal Mode - Click for Candidate Mode';
                 modeButton.classList.remove('candidate-mode');
             } else {
-                modeButton.innerHTML = '<i class="fas fa-edit"></i> Candidate';
+                modeButton.innerHTML = '<i class="fas fa-pencil-alt"></i> Candidate';
                 modeButton.title = 'Currently in Candidate Mode - Click for Normal Mode';
                 modeButton.classList.add('candidate-mode');
             }
@@ -664,7 +664,7 @@ class SudokuGame {
         }
     }
 
-    saveState() {
+    saveState(isNumberEntry = false) {
         // Remove future history if we're not at the end
         if (this.historyIndex < this.history.length - 1) {
             this.history = this.history.slice(0, this.historyIndex + 1);
@@ -674,7 +674,8 @@ class SudokuGame {
         this.history.push({
             grid: this.currentGrid.map(row => [...row]),
             candidates: JSON.parse(JSON.stringify(this.candidates)),
-            mistakes: this.mistakes
+            mistakes: this.mistakes,
+            isNumberEntry: isNumberEntry
         });
 
         // Limit history size
@@ -686,8 +687,14 @@ class SudokuGame {
     }
 
     undo() {
-        if (this.historyIndex > 0) {
-            this.historyIndex--;
+        // Find the most recent number entry to undo
+        let targetIndex = this.historyIndex - 1;
+        while (targetIndex >= 0 && !this.history[targetIndex].isNumberEntry) {
+            targetIndex--;
+        }
+
+        if (targetIndex >= 0) {
+            this.historyIndex = targetIndex;
             this.restoreState(this.history[this.historyIndex]);
         }
     }
@@ -942,10 +949,11 @@ class SudokuGame {
         messageEl.textContent = message;
         messageEl.className = `game-message ${type} visible`;
 
-        // Auto-hide after 3 seconds
+        // Auto-hide after 4 seconds for hint messages, 3 for others
+        const hideTime = message.includes('Hint:') || message.includes('hint') ? 4000 : 3000;
         setTimeout(() => {
             messageEl.classList.remove('visible');
-        }, 3000);
+        }, hideTime);
     }
 
     showErrorMessage(message) {
