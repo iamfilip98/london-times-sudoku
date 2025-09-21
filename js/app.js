@@ -181,6 +181,9 @@ class SudokuChampionship {
         const today = new Date().toISOString().split('T')[0];
         const dailyCompletions = JSON.parse(localStorage.getItem('dailyCompletions') || '{}');
 
+        console.log('Updating battle results for date:', today);
+        console.log('Daily completions:', dailyCompletions);
+
         let faidaoTotal = 0;
         let filipTotal = 0;
 
@@ -190,13 +193,19 @@ class SudokuChampionship {
             const filipKey = `${today}-filip-${difficulty}`;
 
             if (dailyCompletions[faidaoKey]) {
-                faidaoTotal += this.calculateGameScore(dailyCompletions[faidaoKey]);
+                const score = this.calculateGameScore(dailyCompletions[faidaoKey]);
+                console.log(`Faidao ${difficulty} score:`, score, 'from game:', dailyCompletions[faidaoKey]);
+                faidaoTotal += score;
             }
 
             if (dailyCompletions[filipKey]) {
-                filipTotal += this.calculateGameScore(dailyCompletions[filipKey]);
+                const score = this.calculateGameScore(dailyCompletions[filipKey]);
+                console.log(`Filip ${difficulty} score:`, score, 'from game:', dailyCompletions[filipKey]);
+                filipTotal += score;
             }
         });
+
+        console.log('Final totals - Faidao:', faidaoTotal, 'Filip:', filipTotal);
 
         const scores = {
             faidao: { total: faidaoTotal },
@@ -707,6 +716,10 @@ class SudokuChampionship {
 
     async updatePageContent(page) {
         switch (page) {
+            case 'dashboard':
+                // Force update dashboard content including battle results
+                this.updateDashboard();
+                break;
             case 'analytics':
                 if (window.analyticsManager) {
                     window.analyticsManager.updateCharts(this.entries);

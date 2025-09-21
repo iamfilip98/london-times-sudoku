@@ -269,6 +269,8 @@ class DailyPuzzlesManager {
         // Call main app's recording method
         if (window.sudokuApp) {
             window.sudokuApp.recordGameResult(result);
+            // Immediately update battle results to reflect new scores
+            window.sudokuApp.updateBattleResultsFromGames();
         }
 
         // Hide game area and show daily games grid

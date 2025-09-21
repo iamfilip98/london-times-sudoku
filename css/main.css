@@ -2739,7 +2739,7 @@ select:focus-visible,
     align-items: center;
     justify-content: center;
     color: transparent;
-    font-size: 0.8rem;
+    font-size: 1.0rem;
     font-weight: 400;
     min-height: 18px;
     background: transparent;
@@ -3049,6 +3049,10 @@ select:focus-visible,
 .game-status {
     font-weight: 600;
     font-size: 0.9rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    line-height: 1;
 }
 
 .game-status.completed {
@@ -3199,7 +3203,7 @@ select:focus-visible,
     }
 
     .candidate {
-        font-size: 0.7rem;
+        font-size: 0.9rem;
         min-height: 14px;
     }
 }
