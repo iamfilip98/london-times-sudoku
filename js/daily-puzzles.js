@@ -271,7 +271,7 @@ class DailyPuzzlesManager {
 
     async saveGameToDatabase(result) {
         try {
-            const response = await fetch('/api/sudoku-games', {
+            const response = await fetch('/api/supabase-games', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
@@ -293,10 +293,10 @@ class DailyPuzzlesManager {
             }
 
             const data = await response.json();
-            console.log('Game saved to database:', data);
+            console.log('Game saved to Supabase:', data);
             return data;
         } catch (error) {
-            console.error('Database save error:', error);
+            console.error('Supabase save error:', error);
             throw error;
         }
     }
@@ -304,7 +304,7 @@ class DailyPuzzlesManager {
     async loadDailyCompletionsFromDatabase() {
         try {
             const today = new Date().toISOString().split('T')[0];
-            const response = await fetch(`/api/sudoku-games?action=completions&player=${this.currentPlayer}&date=${today}`);
+            const response = await fetch(`/api/supabase-games?action=completions&player=${this.currentPlayer}&date=${today}`);
 
             if (response.ok) {
                 const completions = await response.json();
@@ -326,7 +326,7 @@ class DailyPuzzlesManager {
                 localStorage.setItem('dailyCompletions', JSON.stringify(this.dailyCompletions));
             }
         } catch (error) {
-            console.error('Failed to load completions from database:', error);
+            console.error('Failed to load completions from Supabase:', error);
             // Fall back to localStorage
         }
     }
