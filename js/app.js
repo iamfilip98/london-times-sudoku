@@ -65,81 +65,13 @@ class SudokuChampionship {
     }
 
     setupEventListeners() {
-        // Date input
-        document.getElementById('entryDate').addEventListener('change', () => {
-            this.checkExistingEntry();
-        });
-
-        // Time and error inputs
-        const timeInputs = document.querySelectorAll('.time-input');
-        const errorInputs = document.querySelectorAll('.error-input');
-        const dnfCheckboxes = document.querySelectorAll('.dnf-checkbox');
-
-        timeInputs.forEach(input => {
-            input.addEventListener('input', (e) => {
-                this.handleTimeInput(e.target);
-                this.updateScores();
-            });
-
-            // Clear selection when focused for easy retyping
-            input.addEventListener('focus', (e) => {
-                // Select all text for easy replacement
-                setTimeout(() => {
-                    e.target.select();
-                }, 0);
-            });
-
-            // Also format on blur to catch any missed formatting
-            input.addEventListener('blur', (e) => {
-                this.formatTimeInput(e.target);
-                this.updateScores();
-            });
-
-            // Handle key events for better UX
-            input.addEventListener('keydown', (e) => {
-                // Allow easy clearing with Delete/Backspace when all text is selected
-                if ((e.key === 'Delete' || e.key === 'Backspace') &&
-                    e.target.selectionStart === 0 &&
-                    e.target.selectionEnd === e.target.value.length) {
-                    e.target.value = '';
-                    e.target.dataset.rawValue = '';
-                    this.updateScores();
-                    e.preventDefault();
-                }
-            });
-        });
-
-        errorInputs.forEach(input => {
-            input.addEventListener('input', () => {
-                this.updateScores();
-            });
-
-            // Also update on blur
-            input.addEventListener('blur', () => {
-                this.updateScores();
-            });
-        });
-
-        dnfCheckboxes.forEach(checkbox => {
-            checkbox.addEventListener('change', () => {
-                this.toggleInputs(checkbox);
-                this.updateScores();
-            });
-        });
-
-        // Action buttons
-        document.getElementById('saveEntry').addEventListener('click', () => {
-            this.saveEntry();
-        });
-
-        document.getElementById('clearEntry').addEventListener('click', () => {
-            this.clearEntry();
-        });
-
         // Achievement notification close
-        document.querySelector('.achievement-close').addEventListener('click', () => {
-            this.hideAchievementNotification();
-        });
+        const achievementClose = document.querySelector('.achievement-close');
+        if (achievementClose) {
+            achievementClose.addEventListener('click', () => {
+                this.hideAchievementNotification();
+            });
+        }
     }
 
     setupNavigation() {
@@ -149,15 +81,22 @@ class SudokuChampionship {
         navLinks.forEach(link => {
             link.addEventListener('click', async (e) => {
                 e.preventDefault();
-                const targetPage = e.target.closest('.nav-link').dataset.page;
+
+                const targetPage = link.dataset.page;
+                if (!targetPage) return;
+
+                console.log('Navigating to:', targetPage);
 
                 // Update active nav link
                 navLinks.forEach(l => l.classList.remove('active'));
-                e.target.closest('.nav-link').classList.add('active');
+                link.classList.add('active');
 
                 // Update active page
                 pages.forEach(page => page.classList.remove('active'));
-                document.getElementById(targetPage).classList.add('active');
+                const targetPageElement = document.getElementById(targetPage);
+                if (targetPageElement) {
+                    targetPageElement.classList.add('active');
+                }
 
                 // Update page content
                 await this.updatePageContent(targetPage);
@@ -188,111 +127,17 @@ class SudokuChampionship {
     }
 
     setCurrentDate() {
-        const today = new Date().toISOString().split('T')[0];
-        document.getElementById('entryDate').value = today;
-        document.getElementById('currentDate').textContent = new Date().toLocaleDateString('en-US', {
-            weekday: 'long',
-            year: 'numeric',
-            month: 'long',
-            day: 'numeric'
-        });
-    }
-
-    handleTimeInput(input) {
-        let value = input.value;
-
-        // Strip everything except numbers to get raw input
-        const rawNumbers = value.replace(/[^0-9]/g, '');
-
-        // Store raw numbers for calculation purposes
-        input.dataset.rawValue = rawNumbers;
-
-        // Format and display
-        this.formatTimeInput(input);
-    }
-
-    formatTimeInput(input) {
-        // Use stored raw value if available, otherwise extract from current value
-        let value = input.dataset.rawValue || input.value.replace(/[^0-9]/g, '');
-
-        if (value.length === 0) {
-            input.value = '';
-            input.dataset.rawValue = '';
-            return;
-        }
-
-        // Convert raw numbers to MM:SS format and set cursor position
-        let newCursorPos = input.value.length;
-
-        if (value.length === 1) {
-            // Single digit: 5 → 0:05
-            input.value = `0:0${value}`;
-            newCursorPos = 4;
-        } else if (value.length === 2) {
-            // Two digits: 45 → 0:45
-            input.value = `0:${value}`;
-            newCursorPos = 4;
-        } else if (value.length === 3) {
-            // Three digits: 222 → 2:22, 345 → 3:45
-            const minutes = parseInt(value[0]);
-            const seconds = value.substring(1);
-
-            // Validate seconds don't exceed 59
-            const sec = parseInt(seconds);
-            if (sec >= 60) {
-                // Convert overflow: 555 (5:55) → 9:35 (5*60 + 55 = 355 seconds)
-                const totalSeconds = minutes * 60 + sec;
-                const finalMinutes = Math.floor(totalSeconds / 60);
-                const finalSecs = totalSeconds % 60;
-                input.value = `${finalMinutes}:${finalSecs.toString().padStart(2, '0')}`;
-            } else {
-                input.value = `${minutes}:${seconds}`;
-            }
-            newCursorPos = input.value.length;
-        } else if (value.length >= 4) {
-            // Four or more digits: 1234 → 12:34
-            const minutes = parseInt(value.substring(0, value.length - 2));
-            const seconds = value.substring(value.length - 2);
-
-            // Handle seconds overflow
-            const sec = parseInt(seconds);
-
-            if (sec >= 60) {
-                const totalSeconds = minutes * 60 + sec;
-                const finalMinutes = Math.floor(totalSeconds / 60);
-                const finalSecs = totalSeconds % 60;
-                input.value = `${finalMinutes}:${finalSecs.toString().padStart(2, '0')}`;
-            } else {
-                input.value = `${minutes}:${seconds}`;
-            }
-            newCursorPos = input.value.length;
-        }
-
-        // Set cursor to end to prevent insertion at beginning
-        setTimeout(() => {
-            input.setSelectionRange(newCursorPos, newCursorPos);
-        }, 0);
-    }
-
-    toggleInputs(checkbox) {
-        const card = checkbox.closest('.difficulty-card');
-        const timeInput = card.querySelector('.time-input');
-        const errorInput = card.querySelector('.error-input');
-
-        if (checkbox.checked) {
-            timeInput.disabled = true;
-            timeInput.value = '';
-            timeInput.style.opacity = '0.5';
-            errorInput.disabled = true;
-            errorInput.value = '';
-            errorInput.style.opacity = '0.5';
-        } else {
-            timeInput.disabled = false;
-            timeInput.style.opacity = '1';
-            errorInput.disabled = false;
-            errorInput.style.opacity = '1';
+        const currentDateElement = document.getElementById('currentDate');
+        if (currentDateElement) {
+            currentDateElement.textContent = new Date().toLocaleDateString('en-US', {
+                weekday: 'long',
+                year: 'numeric',
+                month: 'long',
+                day: 'numeric'
+            });
         }
     }
+
 
     parseTimeToSeconds(timeString) {
         if (!timeString || timeString.trim() === '' || timeString === '0:00') return null;
@@ -331,68 +176,42 @@ class SudokuChampionship {
         );
     }
 
-    calculateScores() {
-        const players = ['faidao', 'filip'];
-        const difficulties = ['easy', 'medium', 'hard'];
-        const multipliers = { easy: 1, medium: 1.5, hard: 2 };
-        const scores = { faidao: {}, filip: {} };
-        const playerData = {};
+    updateBattleResultsFromGames() {
+        // Get today's completed games from localStorage
+        const today = new Date().toISOString().split('T')[0];
+        const dailyCompletions = JSON.parse(localStorage.getItem('dailyCompletions') || '{}');
 
-        // Get input data
-        players.forEach(player => {
-            playerData[player] = {};
-            let totalScore = 0;
+        let faidaoTotal = 0;
+        let filipTotal = 0;
 
-            difficulties.forEach(difficulty => {
-                const timeInput = document.getElementById(`${player}-${difficulty}-time`);
-                const errorInput = document.getElementById(`${player}-${difficulty}-errors`);
-                const dnfCheckbox = document.getElementById(`${player}-${difficulty}-dnf`);
+        // Calculate today's scores
+        ['easy', 'medium', 'hard'].forEach(difficulty => {
+            const faidaoKey = `${today}-faidao-${difficulty}`;
+            const filipKey = `${today}-filip-${difficulty}`;
 
-                const time = this.parseTimeToSeconds(timeInput.value);
-                const errors = parseInt(errorInput.value) || 0;
-                const dnf = dnfCheckbox.checked;
+            if (dailyCompletions[faidaoKey]) {
+                faidaoTotal += this.calculateGameScore(dailyCompletions[faidaoKey]);
+            }
 
-                let score = 0;
-
-                if (!dnf && time !== null) {
-                    // Add error penalty (30 seconds per error)
-                    const adjustedTime = time + (errors * 30);
-                    const adjustedMinutes = adjustedTime / 60;
-
-                    // Calculate score: (1000 ÷ minutes) × multiplier
-                    score = (1000 / adjustedMinutes) * multipliers[difficulty];
-                    score = Math.round(score * 100) / 100;
-                }
-
-                playerData[player][difficulty] = { time, errors, dnf, score };
-                scores[player][difficulty] = score;
-                totalScore += score;
-
-                // Update difficulty score display
-                document.getElementById(`${player}-${difficulty}-score`).textContent = score.toFixed(0);
-            });
-
-            scores[player].total = Math.round(totalScore * 100) / 100;
-
-            // Update total score display
-            document.getElementById(`${player}-total`).textContent = scores[player].total.toFixed(0);
+            if (dailyCompletions[filipKey]) {
+                filipTotal += this.calculateGameScore(dailyCompletions[filipKey]);
+            }
         });
 
-        // Update battle results
-        this.updateBattleResults(scores);
+        const scores = {
+            faidao: { total: faidaoTotal },
+            filip: { total: filipTotal }
+        };
 
-        return { scores, playerData };
+        this.updateBattleResults(scores);
     }
 
-    updateScores() {
-        const { scores } = this.calculateScores();
-
-        // Trigger score update animation
-        document.querySelectorAll('.difficulty-score, .total-value').forEach(el => {
-            el.style.animation = 'none';
-            el.offsetHeight; // Trigger reflow
-            el.style.animation = 'scoreUpdate 0.5s ease-in-out';
-        });
+    calculateGameScore(game) {
+        const multipliers = { easy: 1, medium: 1.5, hard: 2 };
+        const adjustedTime = game.time + (game.mistakes * 30);
+        const adjustedMinutes = adjustedTime / 60;
+        const score = (1000 / adjustedMinutes) * multipliers[game.difficulty];
+        return Math.round(score);
     }
 
     updateBattleResults(scores) {
@@ -741,72 +560,53 @@ class SudokuChampionship {
         this.saveRecords();
     }
 
-    clearEntry() {
-        if (confirm('Are you sure you want to clear all current entries?')) {
-            document.querySelectorAll('.time-input, .error-input').forEach(input => {
-                input.value = '';
-                input.disabled = false;
-                input.style.opacity = '1';
-            });
-
-            document.querySelectorAll('.dnf-checkbox').forEach(checkbox => {
-                checkbox.checked = false;
-            });
-
-            this.setCurrentDate();
-            this.updateScores();
-        }
-    }
-
-    checkExistingEntry() {
-        const selectedDate = document.getElementById('entryDate').value;
-        const existingEntry = this.entries.find(entry => entry.date === selectedDate);
-
-        if (existingEntry) {
-            if (confirm('An entry exists for this date. Do you want to load it for editing?')) {
-                this.loadEntry(existingEntry);
-            }
-        }
-    }
-
-    loadEntry(entry) {
-        ['faidao', 'filip'].forEach(player => {
-            ['easy', 'medium', 'hard'].forEach(difficulty => {
-                const timeInput = document.getElementById(`${player}-${difficulty}-time`);
-                const errorInput = document.getElementById(`${player}-${difficulty}-errors`);
-                const dnfCheckbox = document.getElementById(`${player}-${difficulty}-dnf`);
-
-                if (entry[player].dnf[difficulty]) {
-                    dnfCheckbox.checked = true;
-                    timeInput.disabled = true;
-                    timeInput.value = '';
-                    timeInput.style.opacity = '0.5';
-                    errorInput.disabled = true;
-                    errorInput.value = '';
-                    errorInput.style.opacity = '0.5';
-                } else {
-                    dnfCheckbox.checked = false;
-                    timeInput.disabled = false;
-                    timeInput.style.opacity = '1';
-                    errorInput.disabled = false;
-                    errorInput.style.opacity = '1';
-
-                    if (entry[player].times[difficulty] !== null) {
-                        timeInput.value = this.formatSecondsToTime(entry[player].times[difficulty]);
-                    }
-
-                    errorInput.value = entry[player].errors[difficulty] || 0;
-                }
-            });
-        });
-
-        this.updateScores();
-    }
 
     updateDashboard() {
         this.updateStreakDisplay();
         this.updateOverallRecord();
         this.updateRecentHistory();
+        this.updateBattleResultsFromGames();
+        this.updateTodaysResults();
+    }
+
+    updateTodaysResults() {
+        const container = document.getElementById('todaysResultsGrid');
+        if (!container) return;
+
+        const today = new Date().toISOString().split('T')[0];
+        const dailyCompletions = JSON.parse(localStorage.getItem('dailyCompletions') || '{}');
+
+        const todaysGames = Object.entries(dailyCompletions)
+            .filter(([key, game]) => key.startsWith(today))
+            .map(([key, game]) => game);
+
+        if (todaysGames.length === 0) {
+            container.innerHTML = '<div class="no-results">No games completed today yet. Go play some puzzles!</div>';
+            return;
+        }
+
+        container.innerHTML = todaysGames.map(game => `
+            <div class="result-card ${game.player}">
+                <div class="result-header">
+                    <span class="player-name">${game.player}</span>
+                    <span class="difficulty ${game.difficulty}">${game.difficulty}</span>
+                </div>
+                <div class="result-stats">
+                    <div class="stat">
+                        <span class="stat-label">Time:</span>
+                        <span class="stat-value">${this.formatTime(game.time)}</span>
+                    </div>
+                    <div class="stat">
+                        <span class="stat-label">Mistakes:</span>
+                        <span class="stat-value">${game.mistakes}</span>
+                    </div>
+                    <div class="stat">
+                        <span class="stat-label">Score:</span>
+                        <span class="stat-value">${this.calculateGameScore(game)}</span>
+                    </div>
+                </div>
+            </div>
+        `).join('');
     }
 
     updateStreakDisplay() {
@@ -923,6 +723,11 @@ class SudokuChampionship {
             case 'challenges':
                 if (window.challengesManager) {
                     window.challengesManager.updateChallenges(this.entries);
+                }
+                break;
+            case 'daily-puzzles':
+                if (window.dailyPuzzlesManager) {
+                    window.dailyPuzzlesManager.updatePage();
                 }
                 break;
         }
@@ -1160,6 +965,119 @@ class SudokuChampionship {
     updateAllPages() {
         this.updateDashboard();
         // Other page updates will be handled when those managers are loaded
+    }
+
+    // Method to record game results from the Sudoku game
+    recordGameResult(result) {
+        // This method will be called by the daily puzzles manager
+        // when a game is completed to integrate with the existing scoring system
+        console.log('Game result recorded:', result);
+
+        // You could automatically populate the dashboard form here
+        // or just log it for manual entry
+        this.showGameResultNotification(result);
+    }
+
+    showGameResultNotification(result) {
+        const message = `🎮 ${result.player} completed ${result.difficulty} puzzle in ${this.formatTime(result.time)} with ${result.mistakes} mistakes!`;
+
+        // Create or update notification
+        let notification = document.getElementById('game-result-notification');
+        if (!notification) {
+            notification = document.createElement('div');
+            notification.id = 'game-result-notification';
+            notification.className = 'game-result-notification';
+            document.body.appendChild(notification);
+        }
+
+        notification.innerHTML = `
+            <div class="notification-content">
+                <div class="notification-header">
+                    <i class="fas fa-gamepad"></i>
+                    <span>Game Completed!</span>
+                    <button class="notification-close">&times;</button>
+                </div>
+                <div class="notification-body">
+                    <p>${message}</p>
+                    <div class="notification-actions">
+                        <button class="btn-primary" onclick="sudokuApp.fillScoreFromGame('${JSON.stringify(result).replace(/'/g, "\\'")}')">
+                            Add to Score Entry
+                        </button>
+                        <button class="btn-secondary" onclick="sudokuApp.hideGameResultNotification()">
+                            Dismiss
+                        </button>
+                    </div>
+                </div>
+            </div>
+        `;
+
+        notification.classList.add('visible');
+
+        // Add close event listener
+        const closeBtn = notification.querySelector('.notification-close');
+        if (closeBtn) {
+            closeBtn.addEventListener('click', () => this.hideGameResultNotification());
+        }
+
+        // Auto-hide after 10 seconds
+        setTimeout(() => {
+            if (notification.classList.contains('visible')) {
+                this.hideGameResultNotification();
+            }
+        }, 10000);
+    }
+
+    fillScoreFromGame(resultJson) {
+        try {
+            const result = JSON.parse(resultJson);
+
+            // Navigate to dashboard
+            const dashboardLink = document.querySelector('[data-page="dashboard"]');
+            if (dashboardLink) {
+                dashboardLink.click();
+            }
+
+            // Set date
+            const dateInput = document.getElementById('entryDate');
+            if (dateInput) {
+                dateInput.value = result.date;
+            }
+
+            // Fill in the specific player and difficulty
+            const timeInput = document.getElementById(`${result.player}-${result.difficulty}-time`);
+            const errorInput = document.getElementById(`${result.player}-${result.difficulty}-errors`);
+            const dnfCheckbox = document.getElementById(`${result.player}-${result.difficulty}-dnf`);
+
+            if (timeInput && errorInput && dnfCheckbox) {
+                timeInput.value = this.formatTime(result.time);
+                errorInput.value = result.mistakes;
+                dnfCheckbox.checked = !result.completed;
+
+                // Update scores
+                this.updateScores();
+
+                this.hideGameResultNotification();
+
+                // Show success message
+                alert('Game result added to score entry! You can now save or adjust before saving.');
+            }
+        } catch (error) {
+            console.error('Error filling score from game:', error);
+            alert('Error adding game result to score entry.');
+        }
+    }
+
+    hideGameResultNotification() {
+        const notification = document.getElementById('game-result-notification');
+        if (notification) {
+            notification.classList.remove('visible');
+        }
+    }
+
+    formatTime(seconds) {
+        const minutes = Math.floor(seconds / 60);
+        const remainingSeconds = seconds % 60;
+        return `${minutes}:${remainingSeconds.toString().padStart(2, '0')}`;
     }
 
     // API methods

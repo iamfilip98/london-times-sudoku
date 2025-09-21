@@ -114,14 +114,19 @@
                 <i class="fas fa-trophy"></i>
             </div>
             <h1 class="auth-title">Championship Arena</h1>
-            <p class="auth-subtitle">Enter the battleground</p>
+            <p class="auth-subtitle">Choose your player</p>
 
             <form class="auth-form" id="authForm">
+                <select class="auth-input" id="userSelect" required>
+                    <option value="">Select Player</option>
+                    <option value="faidao">Faidao</option>
+                    <option value="filip">Filip</option>
+                </select>
                 <input
                     type="password"
                     class="auth-input"
                     id="passwordInput"
-                    placeholder="Enter password"
+                    placeholder="Enter your password"
                     required
                     autocomplete="current-password"
                 >
@@ -131,28 +136,34 @@
             </form>
 
             <div class="auth-error" id="authError">
-                <i class="fas fa-exclamation-triangle"></i> Invalid password. Try again.
+                <i class="fas fa-exclamation-triangle"></i> Invalid credentials. Try again.
             </div>
 
             <div class="auth-hint">
-                Hint: It's the champion's favorite puzzle 🧩
+                Each player has their own password
             </div>
         </div>
     </div>
 
     <script>
-        // Password: sudoku2024
-        const correctPassword = 'sudoku2024';
+        // User credentials
+        const users = {
+            faidao: { password: 'puzzle123', name: 'Faidao' },
+            filip: { password: 'sudoku456', name: 'Filip' }
+        };
 
         document.getElementById('authForm').addEventListener('submit', function(e) {
             e.preventDefault();
 
+            const selectedUser = document.getElementById('userSelect').value;
             const password = document.getElementById('passwordInput').value;
             const errorDiv = document.getElementById('authError');
 
-            if (password === correctPassword) {
-                // Store authentication in session
+            if (selectedUser && users[selectedUser] && password === users[selectedUser].password) {
+                // Store authentication and user info in session
                 sessionStorage.setItem('sudokuAuth', 'authenticated');
+                sessionStorage.setItem('currentUser', selectedUser);
+                sessionStorage.setItem('currentUserName', users[selectedUser].name);
                 // Redirect to main app
                 window.location.href = 'index.html';
             } else {
@@ -160,6 +171,19 @@
                 document.getElementById('passwordInput').value = '';
                 document.getElementById('passwordInput').focus();
             }
+        });
+
+        // Update password placeholder based on selected user
+        document.getElementById('userSelect').addEventListener('change', function() {
+            const selectedUser = this.value;
+            const passwordInput = document.getElementById('passwordInput');
+            if (selectedUser) {
+                passwordInput.placeholder = `Enter ${users[selectedUser].name}'s password`;
+            } else {
+                passwordInput.placeholder = 'Enter your password';
+            }
+            passwordInput.value = '';
+            document.getElementById('authError').style.display = 'none';
         });
 
         // Check if already authenticated

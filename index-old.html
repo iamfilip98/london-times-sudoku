@@ -1,0 +1,686 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sudoku Championship Arena - Faidao vs Filip</title>
+    <link rel="stylesheet" href="css/main.css">
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Roboto:wght@300;400;500;700;900&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body>
+    <div class="app-container">
+        <!-- Navigation -->
+        <nav class="main-nav">
+            <div class="nav-brand">
+                <i class="fas fa-trophy"></i>
+                <span>Sudoku Championship</span>
+            </div>
+            <div class="nav-links">
+                <a href="#" class="nav-link active" data-page="dashboard">
+                    <i class="fas fa-home"></i>
+                    <span>Dashboard</span>
+                </a>
+                <a href="#" class="nav-link" data-page="analytics">
+                    <i class="fas fa-chart-line"></i>
+                    <span>Analytics</span>
+                </a>
+                <a href="#" class="nav-link" data-page="leaderboards">
+                    <i class="fas fa-medal"></i>
+                    <span>Leaderboards</span>
+                </a>
+                <a href="#" class="nav-link" data-page="achievements">
+                    <i class="fas fa-star"></i>
+                    <span>Achievements</span>
+                </a>
+                <a href="#" class="nav-link" data-page="challenges">
+                    <i class="fas fa-fire"></i>
+                    <span>Challenges</span>
+                </a>
+                <a href="#" class="nav-link" data-page="daily-puzzles">
+                    <i class="fas fa-puzzle-piece"></i>
+                    <span>Daily Puzzles</span>
+                </a>
+            </div>
+            <div class="nav-mobile-toggle">
+                <i class="fas fa-bars"></i>
+            </div>
+        </nav>
+
+        <!-- Achievement Notification -->
+        <div class="achievement-notification" id="achievementNotification">
+            <div class="achievement-content">
+                <i class="fas fa-trophy achievement-icon"></i>
+                <div class="achievement-text">
+                    <h3>Achievement Unlocked!</h3>
+                    <p id="achievementMessage"></p>
+                </div>
+                <button class="achievement-close">&times;</button>
+            </div>
+        </div>
+
+        <!-- Main Content -->
+        <main class="main-content">
+            <!-- Dashboard Page -->
+            <div class="page active" id="dashboard">
+                <div class="dashboard-header">
+                    <h1 class="page-title">
+                        <i class="fas fa-gamepad"></i>
+                        Daily Battle Arena
+                    </h1>
+                    <div class="current-date" id="currentDate"></div>
+                </div>
+
+                <!-- Win Streaks Display -->
+                <section class="win-streaks-section">
+                    <div class="streak-cards">
+                        <div class="streak-card faidao">
+                            <div class="streak-header">
+                                <h3><i class="fas fa-fire"></i> Faidao</h3>
+                                <div class="player-avatar faidao-avatar">F</div>
+                            </div>
+                            <div class="streak-stats">
+                                <div class="current-streak">
+                                    <span class="streak-number" id="faidaoCurrentStreak">0</span>
+                                    <span class="streak-label">Current Streak</span>
+                                </div>
+                                <div class="best-streak">
+                                    <span class="streak-number" id="faidaoBestStreak">0</span>
+                                    <span class="streak-label">Best Streak</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="vs-divider">
+                            <div class="vs-circle">VS</div>
+                            <div class="overall-record" id="overallRecord">0 - 0</div>
+                        </div>
+
+                        <div class="streak-card filip">
+                            <div class="streak-header">
+                                <h3><i class="fas fa-fire"></i> Filip</h3>
+                                <div class="player-avatar filip-avatar">F</div>
+                            </div>
+                            <div class="streak-stats">
+                                <div class="current-streak">
+                                    <span class="streak-number" id="filipCurrentStreak">0</span>
+                                    <span class="streak-label">Current Streak</span>
+                                </div>
+                                <div class="best-streak">
+                                    <span class="streak-number" id="filipBestStreak">0</span>
+                                    <span class="streak-label">Best Streak</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- Date Selection -->
+                <section class="date-section">
+                    <label for="entryDate" class="date-label">
+                        <i class="fas fa-calendar-alt"></i>
+                        Competition Date:
+                    </label>
+                    <input type="date" id="entryDate" class="date-input">
+                </section>
+
+                <!-- Player Input Sections -->
+                <div class="players-container">
+                    <!-- Faidao Section -->
+                    <section class="player-section faidao-section" data-player="faidao">
+                        <div class="player-header">
+                            <div class="player-avatar large faidao-avatar">F</div>
+                            <div class="player-info">
+                                <h2 class="player-name">FAIDAO</h2>
+                                <div class="player-subtitle">The Challenger</div>
+                                <div class="player-level">Level 1</div>
+                            </div>
+                        </div>
+
+                        <div class="difficulties-grid">
+                            <div class="difficulty-card easy">
+                                <h3 class="difficulty-title">
+                                    <i class="fas fa-seedling"></i>
+                                    EASY
+                                </h3>
+                                <div class="input-row">
+                                    <div class="input-group time-group">
+                                        <label for="faidao-easy-time">Time:</label>
+                                        <input type="text" id="faidao-easy-time" class="time-input" placeholder="330 → 3:30">
+                                    </div>
+                                    <div class="input-group error-group">
+                                        <label for="faidao-easy-errors">Errors:</label>
+                                        <input type="number" id="faidao-easy-errors" class="error-input" placeholder="0" min="0" max="20">
+                                    </div>
+                                </div>
+                                <div class="checkbox-group">
+                                    <input type="checkbox" id="faidao-easy-dnf" class="dnf-checkbox">
+                                    <label for="faidao-easy-dnf">Did Not Finish</label>
+                                </div>
+                                <div class="difficulty-score" id="faidao-easy-score">0</div>
+                            </div>
+
+                            <div class="difficulty-card medium">
+                                <h3 class="difficulty-title">
+                                    <i class="fas fa-bolt"></i>
+                                    MEDIUM
+                                </h3>
+                                <div class="input-row">
+                                    <div class="input-group time-group">
+                                        <label for="faidao-medium-time">Time:</label>
+                                        <input type="text" id="faidao-medium-time" class="time-input" placeholder="845 → 8:45">
+                                    </div>
+                                    <div class="input-group error-group">
+                                        <label for="faidao-medium-errors">Errors:</label>
+                                        <input type="number" id="faidao-medium-errors" class="error-input" placeholder="0" min="0" max="20">
+                                    </div>
+                                </div>
+                                <div class="checkbox-group">
+                                    <input type="checkbox" id="faidao-medium-dnf" class="dnf-checkbox">
+                                    <label for="faidao-medium-dnf">Did Not Finish</label>
+                                </div>
+                                <div class="difficulty-score" id="faidao-medium-score">0</div>
+                            </div>
+
+                            <div class="difficulty-card hard">
+                                <h3 class="difficulty-title">
+                                    <i class="fas fa-fire"></i>
+                                    HARD
+                                </h3>
+                                <div class="input-row">
+                                    <div class="input-group time-group">
+                                        <label for="faidao-hard-time">Time:</label>
+                                        <input type="text" id="faidao-hard-time" class="time-input" placeholder="1520 → 15:20">
+                                    </div>
+                                    <div class="input-group error-group">
+                                        <label for="faidao-hard-errors">Errors:</label>
+                                        <input type="number" id="faidao-hard-errors" class="error-input" placeholder="0" min="0" max="20">
+                                    </div>
+                                </div>
+                                <div class="checkbox-group">
+                                    <input type="checkbox" id="faidao-hard-dnf" class="dnf-checkbox">
+                                    <label for="faidao-hard-dnf">Did Not Finish</label>
+                                </div>
+                                <div class="difficulty-score" id="faidao-hard-score">0</div>
+                            </div>
+                        </div>
+
+                        <div class="player-total-score">
+                            <span class="total-label">Total Score</span>
+                            <span class="total-value" id="faidao-total">0</span>
+                        </div>
+                    </section>
+
+                    <!-- Filip Section -->
+                    <section class="player-section filip-section" data-player="filip">
+                        <div class="player-header">
+                            <div class="player-avatar large filip-avatar">F</div>
+                            <div class="player-info">
+                                <h2 class="player-name">FILIP</h2>
+                                <div class="player-subtitle">The Champion</div>
+                                <div class="player-level">Level 1</div>
+                            </div>
+                        </div>
+
+                        <div class="difficulties-grid">
+                            <div class="difficulty-card easy">
+                                <h3 class="difficulty-title">
+                                    <i class="fas fa-seedling"></i>
+                                    EASY
+                                </h3>
+                                <div class="input-row">
+                                    <div class="input-group time-group">
+                                        <label for="filip-easy-time">Time:</label>
+                                        <input type="text" id="filip-easy-time" class="time-input" placeholder="330 → 3:30">
+                                    </div>
+                                    <div class="input-group error-group">
+                                        <label for="filip-easy-errors">Errors:</label>
+                                        <input type="number" id="filip-easy-errors" class="error-input" placeholder="0" min="0" max="20">
+                                    </div>
+                                </div>
+                                <div class="checkbox-group">
+                                    <input type="checkbox" id="filip-easy-dnf" class="dnf-checkbox">
+                                    <label for="filip-easy-dnf">Did Not Finish</label>
+                                </div>
+                                <div class="difficulty-score" id="filip-easy-score">0</div>
+                            </div>
+
+                            <div class="difficulty-card medium">
+                                <h3 class="difficulty-title">
+                                    <i class="fas fa-bolt"></i>
+                                    MEDIUM
+                                </h3>
+                                <div class="input-row">
+                                    <div class="input-group time-group">
+                                        <label for="filip-medium-time">Time:</label>
+                                        <input type="text" id="filip-medium-time" class="time-input" placeholder="845 → 8:45">
+                                    </div>
+                                    <div class="input-group error-group">
+                                        <label for="filip-medium-errors">Errors:</label>
+                                        <input type="number" id="filip-medium-errors" class="error-input" placeholder="0" min="0" max="20">
+                                    </div>
+                                </div>
+                                <div class="checkbox-group">
+                                    <input type="checkbox" id="filip-medium-dnf" class="dnf-checkbox">
+                                    <label for="filip-medium-dnf">Did Not Finish</label>
+                                </div>
+                                <div class="difficulty-score" id="filip-medium-score">0</div>
+                            </div>
+
+                            <div class="difficulty-card hard">
+                                <h3 class="difficulty-title">
+                                    <i class="fas fa-fire"></i>
+                                    HARD
+                                </h3>
+                                <div class="input-row">
+                                    <div class="input-group time-group">
+                                        <label for="filip-hard-time">Time:</label>
+                                        <input type="text" id="filip-hard-time" class="time-input" placeholder="1520 → 15:20">
+                                    </div>
+                                    <div class="input-group error-group">
+                                        <label for="filip-hard-errors">Errors:</label>
+                                        <input type="number" id="filip-hard-errors" class="error-input" placeholder="0" min="0" max="20">
+                                    </div>
+                                </div>
+                                <div class="checkbox-group">
+                                    <input type="checkbox" id="filip-hard-dnf" class="dnf-checkbox">
+                                    <label for="filip-hard-dnf">Did Not Finish</label>
+                                </div>
+                                <div class="difficulty-score" id="filip-hard-score">0</div>
+                            </div>
+                        </div>
+
+                        <div class="player-total-score">
+                            <span class="total-label">Total Score</span>
+                            <span class="total-value" id="filip-total">0</span>
+                        </div>
+                    </section>
+                </div>
+
+                <!-- Battle Results -->
+                <section class="battle-results">
+                    <div class="results-header">
+                        <h3><i class="fas fa-trophy"></i> Today's Battle</h3>
+                        <div class="winner-announcement" id="winnerAnnouncement">
+                            <span class="winner-text">Enter scores to see winner!</span>
+                        </div>
+                    </div>
+                    <div class="score-comparison">
+                        <div class="score-bar faidao-bar">
+                            <div class="score-fill" id="faidaoScoreBar"></div>
+                            <span class="score-text" id="faidaoScoreText">0</span>
+                        </div>
+                        <div class="score-bar filip-bar">
+                            <div class="score-fill" id="filipScoreBar"></div>
+                            <span class="score-text" id="filipScoreText">0</span>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- Action Buttons -->
+                <section class="actions-section">
+                    <button class="action-btn primary" id="saveEntry">
+                        <i class="fas fa-save"></i>
+                        Save Battle Results
+                    </button>
+                    <button class="action-btn secondary" id="clearEntry">
+                        <i class="fas fa-trash"></i>
+                        Clear All
+                    </button>
+                </section>
+
+                <!-- Recent History -->
+                <section class="recent-history">
+                    <h3><i class="fas fa-history"></i> Recent Battles</h3>
+                    <div class="history-cards" id="historyCards">
+                        <!-- History cards will be populated by JavaScript -->
+                    </div>
+                </section>
+            </div>
+
+            <!-- Analytics Page -->
+            <div class="page" id="analytics">
+                <div class="page-header">
+                    <h1 class="page-title">
+                        <i class="fas fa-chart-line"></i>
+                        Performance Analytics
+                    </h1>
+                </div>
+
+                <div class="analytics-grid">
+                    <div class="chart-container">
+                        <h3>Score Trends (Last 30 Days)</h3>
+                        <canvas id="scoreChart"></canvas>
+                    </div>
+
+                    <div class="chart-container">
+                        <h3>Average Times by Difficulty</h3>
+                        <canvas id="timeChart"></canvas>
+                    </div>
+
+                    <div class="chart-container">
+                        <h3>Error Trends</h3>
+                        <canvas id="errorChart"></canvas>
+                    </div>
+
+                    <div class="stats-grid">
+                        <div class="stat-card">
+                            <h4>Win Rate</h4>
+                            <div class="stat-content" id="winRateStats"></div>
+                        </div>
+                        <div class="stat-card">
+                            <h4>Average Performance</h4>
+                            <div class="stat-content" id="avgPerformanceStats"></div>
+                        </div>
+                        <div class="stat-card">
+                            <h4>Improvement</h4>
+                            <div class="stat-content" id="improvementStats"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Leaderboards Page -->
+            <div class="page" id="leaderboards">
+                <div class="page-header">
+                    <h1 class="page-title">
+                        <i class="fas fa-medal"></i>
+                        Leaderboards & Records
+                    </h1>
+                </div>
+
+                <div class="leaderboards-content">
+                    <div class="leaderboard-tabs">
+                        <button class="tab-btn active" data-tab="monthly">Monthly</button>
+                        <button class="tab-btn" data-tab="weekly">Weekly</button>
+                        <button class="tab-btn" data-tab="records">Records</button>
+                    </div>
+
+                    <div class="tab-content active" id="monthly-tab">
+                        <div class="leaderboard-section">
+                            <h3>This Month's Champions</h3>
+                            <div class="leaderboard-cards" id="monthlyLeaderboard"></div>
+                        </div>
+                    </div>
+
+                    <div class="tab-content" id="weekly-tab">
+                        <div class="leaderboard-section">
+                            <h3>This Week's Performance</h3>
+                            <div class="leaderboard-cards" id="weeklyLeaderboard"></div>
+                        </div>
+                    </div>
+
+                    <div class="tab-content" id="records-tab">
+                        <div class="records-grid">
+                            <div class="record-category">
+                                <h3>Fastest Times</h3>
+                                <div class="records-list" id="fastestTimes"></div>
+                            </div>
+                            <div class="record-category">
+                                <h3>Perfect Games</h3>
+                                <div class="records-list" id="perfectGames"></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Achievements Page -->
+            <div class="page" id="achievements">
+                <div class="page-header">
+                    <h1 class="page-title">
+                        <i class="fas fa-star"></i>
+                        Achievements
+                    </h1>
+                </div>
+
+                <!-- Achievements Summary -->
+                <div class="achievements-summary" id="achievementsSummary">
+                    <div class="summary-card">
+                        <div class="player-summary faidao-themed">
+                            <div class="player-name">Faidao</div>
+                            <div class="achievement-count">
+                                <span class="count-number" id="faidaoAchievementCount">0</span>
+                                <span class="count-label">achievements unlocked</span>
+                            </div>
+                        </div>
+                        <div class="vs-divider">VS</div>
+                        <div class="player-summary filip-themed">
+                            <div class="player-name">Filip</div>
+                            <div class="achievement-count">
+                                <span class="count-number" id="filipAchievementCount">0</span>
+                                <span class="count-label">achievements unlocked</span>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="total-summary">
+                        <span id="totalAchievementsUnlocked">0</span> of <span id="totalAchievements">50</span> achievements unlocked
+                    </div>
+                </div>
+
+                <div class="achievements-grid" id="achievementsGrid">
+                    <!-- Achievement badges will be populated by JavaScript -->
+                </div>
+            </div>
+
+            <!-- Challenges Page -->
+            <div class="page" id="challenges">
+                <div class="page-header">
+                    <h1 class="page-title">
+                        <i class="fas fa-fire"></i>
+                        Daily Challenges
+                    </h1>
+                </div>
+
+                <div class="challenges-content">
+                    <div class="current-challenge" id="currentChallenge">
+                        <!-- Current challenge will be populated by JavaScript -->
+                    </div>
+
+                    <div class="challenge-history">
+                        <h3>Challenge History</h3>
+                        <div class="challenge-list" id="challengeHistory">
+                            <!-- Challenge history will be populated by JavaScript -->
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Daily Puzzles Page -->
+            <div class="page" id="daily-puzzles">
+                <div class="page-header">
+                    <h1 class="page-title">
+                        <i class="fas fa-puzzle-piece"></i>
+                        Daily Puzzles
+                    </h1>
+                </div>
+
+                <div class="daily-puzzles-content">
+                    <!-- Player Selection -->
+                    <section class="player-selection">
+                        <h3>Select Player</h3>
+                        <div class="player-buttons">
+                            <button class="player-btn active" data-player="faidao" id="select-faidao">
+                                <div class="player-avatar faidao-avatar">F</div>
+                                <span>Faidao</span>
+                            </button>
+                            <button class="player-btn" data-player="filip" id="select-filip">
+                                <div class="player-avatar filip-avatar">F</div>
+                                <span>Filip</span>
+                            </button>
+                        </div>
+                    </section>
+
+                    <!-- Difficulty Selection -->
+                    <section class="difficulty-selection">
+                        <h3>Choose Difficulty</h3>
+                        <div class="difficulty-buttons">
+                            <button class="difficulty-btn" data-difficulty="easy" id="difficulty-easy">
+                                <i class="fas fa-seedling"></i>
+                                <span>Easy</span>
+                                <small>35-40 clues</small>
+                            </button>
+                            <button class="difficulty-btn active" data-difficulty="medium" id="difficulty-medium">
+                                <i class="fas fa-bolt"></i>
+                                <span>Medium</span>
+                                <small>28-35 clues</small>
+                            </button>
+                            <button class="difficulty-btn" data-difficulty="hard" id="difficulty-hard">
+                                <i class="fas fa-fire"></i>
+                                <span>Hard</span>
+                                <small>22-28 clues</small>
+                            </button>
+                        </div>
+                    </section>
+
+                    <!-- Game Area -->
+                    <section class="game-area">
+                        <!-- Game Controls -->
+                        <div class="game-controls">
+                            <div class="game-info">
+                                <div class="timer-section">
+                                    <i class="fas fa-clock"></i>
+                                    <span id="game-timer">0:00</span>
+                                </div>
+                                <div class="mistakes-section">
+                                    <i class="fas fa-times-circle"></i>
+                                    <span>Mistakes: <span id="mistakes-count">0</span></span>
+                                </div>
+                                <div class="hints-section">
+                                    <i class="fas fa-lightbulb"></i>
+                                    <span>Hints: <span id="hints-used">0</span></span>
+                                </div>
+                            </div>
+                            <div class="game-buttons">
+                                <button class="game-btn" id="new-game-btn">
+                                    <i class="fas fa-plus"></i>
+                                    New Game
+                                </button>
+                                <button class="game-btn" id="pause-button">
+                                    <i class="fas fa-pause"></i>
+                                </button>
+                                <button class="game-btn" id="hint-button">
+                                    <i class="fas fa-lightbulb"></i>
+                                    Hint
+                                </button>
+                                <button class="game-btn" id="check-button">
+                                    <i class="fas fa-check"></i>
+                                    Check
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- Sudoku Grid Container -->
+                        <div class="sudoku-container">
+                            <div id="sudoku-grid-container">
+                                <!-- Grid will be generated by JavaScript -->
+                            </div>
+
+                            <!-- Pause Overlay -->
+                            <div class="pause-overlay" id="pause-overlay">
+                                <div class="pause-content">
+                                    <h3>Game Paused</h3>
+                                    <button class="game-btn" id="resume-button">
+                                        <i class="fas fa-play"></i>
+                                        Resume
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Number Input Buttons -->
+                        <div class="number-buttons">
+                            <div class="number-row">
+                                <button class="number-btn" id="number-1" data-number="1">1</button>
+                                <button class="number-btn" id="number-2" data-number="2">2</button>
+                                <button class="number-btn" id="number-3" data-number="3">3</button>
+                                <button class="number-btn" id="number-4" data-number="4">4</button>
+                                <button class="number-btn" id="number-5" data-number="5">5</button>
+                                <button class="number-btn" id="number-6" data-number="6">6</button>
+                                <button class="number-btn" id="number-7" data-number="7">7</button>
+                                <button class="number-btn" id="number-8" data-number="8">8</button>
+                                <button class="number-btn" id="number-9" data-number="9">9</button>
+                            </div>
+                            <div class="action-row">
+                                <button class="action-btn" id="mode-toggle" title="Toggle Notes Mode">
+                                    <i class="fas fa-pencil-alt"></i>
+                                    Notes
+                                </button>
+                                <button class="action-btn" id="erase-button" title="Erase">
+                                    <i class="fas fa-eraser"></i>
+                                    Erase
+                                </button>
+                                <button class="action-btn" id="undo-button" title="Undo">
+                                    <i class="fas fa-undo"></i>
+                                    Undo
+                                </button>
+                                <button class="action-btn" id="redo-button" title="Redo">
+                                    <i class="fas fa-redo"></i>
+                                    Redo
+                                </button>
+                            </div>
+                        </div>
+                    </section>
+
+                    <!-- Game History -->
+                    <section class="game-history">
+                        <h3>Recent Games</h3>
+                        <div class="history-grid" id="game-history">
+                            <!-- Game history will be populated by JavaScript -->
+                        </div>
+                    </section>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <!-- Authentication Check -->
+    <script>
+        // Check authentication before loading the app
+        if (sessionStorage.getItem('sudokuAuth') !== 'authenticated') {
+            window.location.href = 'auth.html';
+        }
+    </script>
+
+    <script src="js/app.js"></script>
+    <script src="js/achievements.js"></script>
+    <script src="js/analytics.js"></script>
+    <script src="js/challenges.js"></script>
+    <script src="js/sudoku-generator.js"></script>
+    <script src="js/sudoku-game.js"></script>
+    <script src="js/daily-puzzles.js"></script>
+
+    <!-- Mobile Menu Toggle Script -->
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const mobileToggle = document.querySelector('.nav-mobile-toggle');
+            const navLinks = document.querySelector('.nav-links');
+
+            if (mobileToggle && navLinks) {
+                mobileToggle.addEventListener('click', function() {
+                    navLinks.classList.toggle('mobile-active');
+                    const icon = mobileToggle.querySelector('i');
+                    if (icon) {
+                        icon.classList.toggle('fa-bars');
+                        icon.classList.toggle('fa-times');
+                    }
+                });
+
+                // Close menu when clicking on a nav link
+                const navLinkElements = navLinks.querySelectorAll('.nav-link');
+                navLinkElements.forEach(link => {
+                    link.addEventListener('click', function() {
+                        navLinks.classList.remove('mobile-active');
+                        const icon = mobileToggle.querySelector('i');
+                        if (icon) {
+                            icon.classList.add('fa-bars');
+                            icon.classList.remove('fa-times');
+                        }
+                    });
+                });
+            }
+        });
+    </script>
+</body>
+</html>
