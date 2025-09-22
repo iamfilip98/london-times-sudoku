@@ -9,6 +9,7 @@ class SudokuGame {
         this.solution = null;
         this.currentGrid = null;
         this.candidates = {}; // For pencil marks
+        this.userCandidates = {}; // Track manually entered candidates separately
         this.selectedCell = null;
         this.isComplete = false;
         this.startTime = null;
@@ -143,6 +144,7 @@ class SudokuGame {
         // Initialize game state
         this.currentGrid = this.puzzle.map(row => [...row]);
         this.candidates = {};
+        this.userCandidates = {};
         this.selectedCell = null;
         this.isComplete = false;
         this.mistakes = 0;
@@ -244,14 +246,22 @@ class SudokuGame {
         if (!this.candidates[key]) {
             this.candidates[key] = new Set();
         }
+        if (!this.userCandidates[key]) {
+            this.userCandidates[key] = new Set();
+        }
 
         if (this.candidates[key].has(number)) {
             this.candidates[key].delete(number);
+            this.userCandidates[key].delete(number);
             if (this.candidates[key].size === 0) {
                 delete this.candidates[key];
             }
+            if (this.userCandidates[key].size === 0) {
+                delete this.userCandidates[key];
+            }
         } else {
             this.candidates[key].add(number);
+            this.userCandidates[key].add(number);
         }
 
         this.renderCell(row, col);
@@ -265,6 +275,7 @@ class SudokuGame {
             // Clear all candidates (don't save as number entry)
             this.saveState(false);
             delete this.candidates[`${row}-${col}`];
+            delete this.userCandidates[`${row}-${col}`];
         } else {
             // Clear the number (save as number entry since it affects the number grid)
             this.saveState(true);
@@ -706,6 +717,7 @@ class SudokuGame {
         this.history.push({
             grid: this.currentGrid.map(row => [...row]),
             candidates: JSON.parse(JSON.stringify(this.candidates)),
+            userCandidates: JSON.parse(JSON.stringify(this.userCandidates)),
             mistakes: this.mistakes,
             scoreCalculationMistakes: this.scoreCalculationMistakes,
             isNumberEntry: isNumberEntry
@@ -721,9 +733,12 @@ class SudokuGame {
 
     undo() {
         // Undo exactly one action at a time
+        // Check if we have a previous state to restore
         if (this.historyIndex > 0) {
+            // Get the previous state before the current one
+            const previousState = this.history[this.historyIndex - 1];
             this.historyIndex--;
-            this.restoreState(this.history[this.historyIndex]);
+            this.restoreState(previousState);
         }
     }
 
@@ -737,6 +752,7 @@ class SudokuGame {
     restoreState(state) {
         this.currentGrid = state.grid.map(row => [...row]);
         this.candidates = JSON.parse(JSON.stringify(state.candidates));
+        this.userCandidates = JSON.parse(JSON.stringify(state.userCandidates || {})); // Fallback for old saves
         this.mistakes = state.mistakes;
         this.scoreCalculationMistakes = state.scoreCalculationMistakes || state.mistakes; // Fallback for old saves
 
@@ -1093,6 +1109,7 @@ class SudokuGame {
         this.stopTimer();
         this.currentGrid = this.puzzle.map(row => [...row]);
         this.candidates = {};
+        this.userCandidates = {};
         this.selectedCell = null;
         this.isComplete = false;
         this.mistakes = 0;
@@ -1155,8 +1172,14 @@ class SudokuGame {
     }
 
     hideAllCandidates() {
-        // Clear all candidates completely when hiding
+        // Only hide auto-generated candidates, keep user-entered ones
         this.candidates = {};
+        // Restore user-entered candidates
+        for (const key in this.userCandidates) {
+            if (this.userCandidates[key].size > 0) {
+                this.candidates[key] = new Set(this.userCandidates[key]);
+            }
+        }
     }
 
     updateGlobalCandidatesButton() {

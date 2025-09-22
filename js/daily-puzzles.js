@@ -29,6 +29,7 @@ class DailyPuzzlesManager {
         // Load from database
         await this.loadDailyCompletionsFromDatabase();
 
+        // Update display after loading completions from database
         this.updateDailyGamesDisplay();
         this.isInitialized = true;
     }
@@ -337,6 +338,9 @@ class DailyPuzzlesManager {
                 });
 
                 console.log('Daily completions loaded from database');
+
+                // Update display after loading completions
+                this.updateDailyGamesDisplay();
             }
         } catch (error) {
             console.error('Failed to load completions from database:', error);
