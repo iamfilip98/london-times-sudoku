@@ -745,8 +745,8 @@ class SudokuGame {
         // Check if we have a previous state to restore
         if (this.historyIndex > 0) {
             // Get the previous state before the current one
-            const previousState = this.history[this.historyIndex - 1];
             this.historyIndex--;
+            const previousState = this.history[this.historyIndex];
             this.restoreState(previousState);
         }
     }
@@ -1151,8 +1151,7 @@ class SudokuGame {
     }
 
     toggleGlobalCandidates() {
-        // Save state before toggling to preserve undo history
-        this.saveState(false);
+        // Toggle visibility without affecting game state or undo history
 
         this.globalCandidatesVisible = !this.globalCandidatesVisible;
 
