@@ -1183,15 +1183,6 @@ class SudokuGame {
         this.renderGrid();
     }
 
-    showAllCandidates() {
-        // This method now only affects display - no longer modifies this.candidates
-        // Display logic is handled in generateCandidatesHTML method
-    }
-
-    hideAllCandidates() {
-        // This method now only affects display - no longer modifies this.candidates
-        // Display logic is handled in generateCandidatesHTML method
-    }
 
     updateGlobalCandidatesButton() {
         const button = document.getElementById('global-candidates-button');
