@@ -1,7 +1,7 @@
 # 🚀 Quick Database Setup (2 minutes)
 
 ## Step 1: Open Supabase Dashboard
-**Click this link:** https://jffrziyhdkosiffenfsy.supabase.co
+**Click this link:** https://your-project-ref.supabase.co
 
 ## Step 2: Go to SQL Editor
 1. In the left sidebar, click **"SQL Editor"**

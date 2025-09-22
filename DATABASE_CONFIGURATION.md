@@ -9,7 +9,7 @@
 ## Quick Setup (2 minutes)
 
 ### 1. Open Supabase Dashboard
-Go to: https://jffrziyhdkosiffenfsy.supabase.co
+Go to: https://your-project-ref.supabase.co
 
 ### 2. Create Tables
 1. Click on **SQL Editor** in the left sidebar
@@ -79,9 +79,9 @@ Expected response:
 These are already configured in `.env.local`:
 
 ```
-POSTGRES_URL=postgres://postgres.jffrziyhdkosiffenfsy:...
-SUPABASE_URL=https://jffrziyhdkosiffenfsy.supabase.co
-SUPABASE_SERVICE_ROLE_KEY=eyJhbGci...
+POSTGRES_URL=postgres://postgres.your-project-ref:your-password@aws-0-region.pooler.supabase.com:6543/postgres
+SUPABASE_URL=https://your-project-ref.supabase.co
+SUPABASE_SERVICE_ROLE_KEY=your-service-role-key-here
 ```
 
 ## Troubleshooting
