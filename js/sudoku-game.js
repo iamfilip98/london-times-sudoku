@@ -202,7 +202,10 @@ class SudokuGame {
         this.currentGrid[row][col] = number;
 
         // Real-time error checking and feedback
-        if (conflicts.length > 0) {
+        const isCorrectSolution = this.solution && this.solution[row][col] === number;
+        const hasConflicts = conflicts.length > 0;
+
+        if (hasConflicts || !isCorrectSolution) {
             this.mistakes++;
             this.scoreCalculationMistakes++;
             this.updateMistakesDisplay();
@@ -210,11 +213,17 @@ class SudokuGame {
             // Mark the cell as error immediately with red text
             this.markCellAsError(row, col, true);
 
-            // Highlight all conflicting cells
-            this.highlightConflicts([...conflicts, [row, col]]);
+            // Highlight all conflicting cells if there are conflicts
+            if (hasConflicts) {
+                this.highlightConflicts([...conflicts, [row, col]]);
+            }
 
-            // Show error message
-            this.showErrorMessage(`Invalid placement! This number conflicts with existing numbers.`);
+            // Show appropriate error message
+            if (hasConflicts) {
+                this.showErrorMessage(`Invalid placement! This number conflicts with existing numbers.`);
+            } else {
+                this.showErrorMessage(`Incorrect number! This is not the solution for this cell.`);
+            }
 
             // Keep error highlighting visible until the user fixes it
         } else {

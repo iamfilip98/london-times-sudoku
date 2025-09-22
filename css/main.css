@@ -823,17 +823,21 @@ body {
 .achievement-notification {
     position: fixed;
     top: 100px;
-    right: -400px;
+    right: -450px;
     width: 350px;
     background: var(--success-gradient);
     border-radius: var(--border-radius);
     box-shadow: var(--box-shadow);
     z-index: 10000;
-    transition: right 0.5s cubic-bezier(0.68, -0.55, 0.265, 1.55);
+    transition: right 0.5s cubic-bezier(0.68, -0.55, 0.265, 1.55), opacity 0.3s ease, visibility 0.3s ease;
+    opacity: 0;
+    visibility: hidden;
 }
 
 .achievement-notification.show {
     right: 20px;
+    opacity: 1;
+    visibility: visible;
 }
 
 /* Game Result Notification */
@@ -1664,6 +1668,36 @@ body {
     }
 }
 
+/* Tablet and small desktop responsiveness */
+@media (max-width: 1024px) {
+    .nav-content {
+        padding: 1rem 1.5rem;
+        gap: 1rem;
+    }
+
+    .nav-links {
+        gap: 1rem;
+    }
+
+    .nav-link {
+        padding: 0.75rem 1rem;
+        font-size: 0.9rem;
+    }
+
+    .nav-user {
+        flex-shrink: 0;
+        min-width: fit-content;
+    }
+
+    .nav-logout {
+        padding: 0.4rem;
+        min-width: 40px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+}
+
 @media (max-width: 768px) {
     .main-nav {
         padding: 1rem;
@@ -1774,7 +1808,7 @@ body {
 
     .achievement-notification {
         width: 300px;
-        right: -320px;
+        right: -350px;
     }
 
     .achievement-notification.show {
@@ -2582,6 +2616,12 @@ select:focus-visible,
     border-color: var(--accent-blue);
     color: #ffffff;
     font-weight: 700;
+}
+
+/* Fixed width for candidates button to prevent layout shift */
+#global-candidates-button {
+    min-width: 200px;
+    white-space: nowrap;
 }
 
 /* Sudoku Container */
