@@ -199,41 +199,43 @@ class SudokuGame {
     }
 
     setNumber(row, col, number) {
-        // Check for conflicts BEFORE making any changes
+        // Check for conflicts and correctness BEFORE making any changes
         const conflicts = this.generator.getConflicts(this.currentGrid, row, col, number);
         const isCorrectSolution = this.solution && this.solution[row][col] === number;
         const hasConflicts = conflicts.length > 0;
 
-        // If number is invalid (has conflicts), don't place it at all
-        if (hasConflicts) {
-            // Show error message and highlight conflicts temporarily
-            this.showErrorMessage(`Invalid placement! This number conflicts with existing numbers.`);
-            this.highlightConflicts([...conflicts, [row, col]]);
-            return; // Don't place the number
-        }
-
-        // Save state for undo only when we're actually placing a number
+        // Save state for undo before placing any number (valid or invalid)
         this.saveState(true);
 
         // Clear any candidates for this cell
         delete this.candidates[`${row}-${col}`];
 
-        // Set the number
+        // Set the number (allow both valid and invalid placements)
         this.currentGrid[row][col] = number;
 
-        // Check if it's the correct solution
-        if (!isCorrectSolution) {
-            // Incorrect but not conflicting - count as mistake but allow placement
+        // Always clear any previous error state first
+        this.clearCellError(row, col);
+
+        // Handle errors and feedback
+        if (hasConflicts || !isCorrectSolution) {
+            // Count as mistake and show error
             this.mistakes++;
             this.scoreCalculationMistakes++;
             this.updateMistakesDisplay();
 
-            // Mark the cell as error
+            // Mark the cell as error with red highlighting
             this.markCellAsError(row, col, true);
-            this.showErrorMessage(`Incorrect number! This is not the solution for this cell.`);
+
+            // Show appropriate error message
+            if (hasConflicts) {
+                this.showErrorMessage(`Invalid placement! This number conflicts with existing numbers.`);
+                // Highlight conflicting cells temporarily
+                this.highlightConflicts([...conflicts, [row, col]]);
+            } else {
+                this.showErrorMessage(`Incorrect number! This is not the solution for this cell.`);
+            }
         } else {
-            // Valid placement - clear error state for this cell
-            this.clearCellError(row, col);
+            // Valid placement - error state already cleared above
             this.showSuccessMessage(`Good move!`);
         }
 
