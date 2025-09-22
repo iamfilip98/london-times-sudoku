@@ -39,8 +39,8 @@ class SudokuChampionship {
         // Load data from database or migrate from localStorage
         await this.loadData();
 
-        this.updateDashboard();
-        this.updateAllPages();
+        await this.updateDashboard();
+        await this.updateAllPages();
     }
 
     initializeScoreDisplay() {
@@ -176,10 +176,57 @@ class SudokuChampionship {
         );
     }
 
-    updateBattleResultsFromGames() {
-        // Get today's completed games from localStorage
+    async updateBattleResultsFromGames() {
+        // Get today's completed games from database first, fallback to localStorage
         const today = new Date().toISOString().split('T')[0];
-        const dailyCompletions = JSON.parse(localStorage.getItem('dailyCompletions') || '{}');
+
+        let dailyCompletions = {};
+
+        try {
+            // Load from database for both players
+            const [faidaoResponse, filipResponse] = await Promise.all([
+                fetch(`/api/sudoku-games?action=results&player=faidao&date=${today}`),
+                fetch(`/api/sudoku-games?action=results&player=filip&date=${today}`)
+            ]);
+
+            if (faidaoResponse.ok) {
+                const faidaoResults = await faidaoResponse.json();
+                Object.keys(faidaoResults).forEach(difficulty => {
+                    if (faidaoResults[difficulty].completed) {
+                        const gameKey = `${today}-faidao-${difficulty}`;
+                        dailyCompletions[gameKey] = {
+                            date: today,
+                            player: 'faidao',
+                            difficulty: difficulty,
+                            time: faidaoResults[difficulty].time,
+                            mistakes: faidaoResults[difficulty].mistakes,
+                            completed: faidaoResults[difficulty].completed
+                        };
+                    }
+                });
+            }
+
+            if (filipResponse.ok) {
+                const filipResults = await filipResponse.json();
+                Object.keys(filipResults).forEach(difficulty => {
+                    if (filipResults[difficulty].completed) {
+                        const gameKey = `${today}-filip-${difficulty}`;
+                        dailyCompletions[gameKey] = {
+                            date: today,
+                            player: 'filip',
+                            difficulty: difficulty,
+                            time: filipResults[difficulty].time,
+                            mistakes: filipResults[difficulty].mistakes,
+                            completed: filipResults[difficulty].completed
+                        };
+                    }
+                });
+            }
+        } catch (error) {
+            console.error('Failed to load from database, using localStorage:', error);
+            // Fallback to localStorage
+            dailyCompletions = JSON.parse(localStorage.getItem('dailyCompletions') || '{}');
+        }
 
         console.log('Updating battle results for date:', today);
         console.log('Daily completions:', dailyCompletions);
@@ -470,7 +517,7 @@ class SudokuChampionship {
             this.records = this.calculateRecords();
 
             // Update all displays
-            this.updateDashboard();
+            await this.updateDashboard();
 
             const message = allTimesSubmitted
                 ? 'Battle results saved successfully! Head-to-head scores and achievements updated.'
@@ -570,24 +617,69 @@ class SudokuChampionship {
     }
 
 
-    updateDashboard() {
+    async updateDashboard() {
         this.updateStreakDisplay();
         this.updateOverallRecord();
         this.updateRecentHistory();
-        this.updateBattleResultsFromGames();
-        this.updateTodaysResults();
+        await this.updateBattleResultsFromGames();
+        await this.updateTodaysResults();
     }
 
-    updateTodaysResults() {
+    async updateTodaysResults() {
         const container = document.getElementById('todaysResultsGrid');
         if (!container) return;
 
         const today = new Date().toISOString().split('T')[0];
-        const dailyCompletions = JSON.parse(localStorage.getItem('dailyCompletions') || '{}');
+        let todaysGames = [];
 
-        const todaysGames = Object.entries(dailyCompletions)
-            .filter(([key, game]) => key.startsWith(today))
-            .map(([key, game]) => game);
+        try {
+            // Load from database for both players
+            const [faidaoResponse, filipResponse] = await Promise.all([
+                fetch(`/api/sudoku-games?action=results&player=faidao&date=${today}`),
+                fetch(`/api/sudoku-games?action=results&player=filip&date=${today}`)
+            ]);
+
+            const allGames = [];
+
+            if (faidaoResponse.ok) {
+                const faidaoResults = await faidaoResponse.json();
+                Object.keys(faidaoResults).forEach(difficulty => {
+                    if (faidaoResults[difficulty].completed) {
+                        allGames.push({
+                            player: 'faidao',
+                            difficulty: difficulty,
+                            time: faidaoResults[difficulty].time,
+                            mistakes: faidaoResults[difficulty].mistakes,
+                            completed: faidaoResults[difficulty].completed
+                        });
+                    }
+                });
+            }
+
+            if (filipResponse.ok) {
+                const filipResults = await filipResponse.json();
+                Object.keys(filipResults).forEach(difficulty => {
+                    if (filipResults[difficulty].completed) {
+                        allGames.push({
+                            player: 'filip',
+                            difficulty: difficulty,
+                            time: filipResults[difficulty].time,
+                            mistakes: filipResults[difficulty].mistakes,
+                            completed: filipResults[difficulty].completed
+                        });
+                    }
+                });
+            }
+
+            todaysGames = allGames;
+        } catch (error) {
+            console.error('Failed to load today\'s results from database, using localStorage:', error);
+            // Fallback to localStorage
+            const dailyCompletions = JSON.parse(localStorage.getItem('dailyCompletions') || '{}');
+            todaysGames = Object.entries(dailyCompletions)
+                .filter(([key, game]) => key.startsWith(today))
+                .map(([key, game]) => game);
+        }
 
         if (todaysGames.length === 0) {
             container.innerHTML = '<div class="no-results">No games completed today yet. Go play some puzzles!</div>';
@@ -706,7 +798,7 @@ class SudokuChampionship {
 
                 this.entries = this.entries.filter(entry => entry.date !== date);
                 await this.updateStreaks();
-                this.updateDashboard();
+                await this.updateDashboard();
             } catch (error) {
                 console.error('Failed to delete entry:', error);
                 alert('Failed to delete entry. Please try again.');
@@ -718,7 +810,7 @@ class SudokuChampionship {
         switch (page) {
             case 'dashboard':
                 // Force update dashboard content including battle results
-                this.updateDashboard();
+                await this.updateDashboard();
                 break;
             case 'analytics':
                 if (window.analyticsManager) {
@@ -975,8 +1067,8 @@ class SudokuChampionship {
         }
     }
 
-    updateAllPages() {
-        this.updateDashboard();
+    async updateAllPages() {
+        await this.updateDashboard();
         // Other page updates will be handled when those managers are loaded
     }
 

@@ -1,14 +1,32 @@
 const { Pool } = require('pg');
 
-const pool = new Pool({
-  connectionString: process.env.POSTGRES_URL,
-  ssl: {
-    rejectUnauthorized: false
+let pool = null;
+let useDatabase = false;
+
+// Initialize database connection only if environment variables are set
+if (process.env.POSTGRES_URL) {
+  try {
+    pool = new Pool({
+      connectionString: process.env.POSTGRES_URL,
+      ssl: {
+        rejectUnauthorized: false
+      }
+    });
+    useDatabase = true;
+  } catch (error) {
+    console.warn('Database connection failed, using localStorage fallback:', error.message);
+    useDatabase = false;
   }
-});
+} else {
+  console.log('No database URL provided, using localStorage fallback');
+}
 
 // Helper function to execute SQL queries
 async function sql(strings, ...values) {
+  if (!useDatabase || !pool) {
+    throw new Error('Database not available');
+  }
+
   let query = '';
   const params = [];
   let paramIndex = 1;
@@ -68,6 +86,12 @@ async function initSudokuTables() {
 
 // Save a completed Sudoku game
 async function saveGameResult(gameData) {
+  if (!useDatabase) {
+    // Mock response when database is not available
+    console.log('Mock: Game result saved:', gameData);
+    return true;
+  }
+
   try {
     const { date, player, difficulty, time, mistakes, hintsUsed, completed, score } = gameData;
 
@@ -104,6 +128,12 @@ async function saveGameResult(gameData) {
 
 // Get daily completions for a player
 async function getDailyCompletions(player, date) {
+  if (!useDatabase) {
+    // Mock response when database is not available
+    console.log('Mock: Getting daily completions for', player, 'on', date);
+    return {};
+  }
+
   try {
     const result = await sql`
       SELECT difficulty, completed, completed_at
@@ -126,6 +156,12 @@ async function getDailyCompletions(player, date) {
 
 // Get game results for a specific date and player
 async function getGameResults(player, date) {
+  if (!useDatabase) {
+    // Mock response when database is not available
+    console.log('Mock: Getting game results for', player, 'on', date);
+    return {};
+  }
+
   try {
     const result = await sql`
       SELECT difficulty, time_seconds, mistakes, hints_used, score, completed
@@ -151,6 +187,12 @@ async function getGameResults(player, date) {
 
 // Get leaderboard for a specific difficulty
 async function getLeaderboard(difficulty, limit = 10) {
+  if (!useDatabase) {
+    // Mock response when database is not available
+    console.log('Mock: Getting leaderboard for', difficulty);
+    return [];
+  }
+
   try {
     const result = await sql`
       SELECT player, MIN(time_seconds) as best_time, MAX(score) as best_score, COUNT(*) as games_played
@@ -169,12 +211,16 @@ async function getLeaderboard(difficulty, limit = 10) {
 }
 
 module.exports = async function handler(req, res) {
-  // Initialize database on first request
-  try {
-    await initSudokuTables();
-  } catch (error) {
-    console.error('Sudoku tables initialization failed:', error);
-    return res.status(500).json({ error: 'Database initialization failed' });
+  // Initialize database on first request (only if database is available)
+  if (useDatabase) {
+    try {
+      await initSudokuTables();
+    } catch (error) {
+      console.error('Sudoku tables initialization failed:', error);
+      res.writeHead(500, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ error: 'Database initialization failed' }));
+      return;
+    }
   }
 
   // Set CORS headers
@@ -193,45 +239,59 @@ module.exports = async function handler(req, res) {
 
         if (action === 'completions') {
           const completions = await getDailyCompletions(player, date);
-          return res.status(200).json(completions);
+          res.writeHead(200, { 'Content-Type': 'application/json' });
+          res.end(JSON.stringify(completions));
+          return;
         }
 
         if (action === 'results') {
           const results = await getGameResults(player, date);
-          return res.status(200).json(results);
+          res.writeHead(200, { 'Content-Type': 'application/json' });
+          res.end(JSON.stringify(results));
+          return;
         }
 
         if (action === 'leaderboard') {
           const leaderboard = await getLeaderboard(difficulty);
-          return res.status(200).json(leaderboard);
+          res.writeHead(200, { 'Content-Type': 'application/json' });
+          res.end(JSON.stringify(leaderboard));
+          return;
         }
 
-        return res.status(400).json({ error: 'Invalid action parameter' });
+        res.writeHead(400, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ error: 'Invalid action parameter' }));
+        return;
 
       case 'POST':
         const gameData = req.body;
 
         // Validate required fields
         if (!gameData.date || !gameData.player || !gameData.difficulty || !gameData.time) {
-          return res.status(400).json({ error: 'Missing required game data' });
+          res.writeHead(400, { 'Content-Type': 'application/json' });
+          res.end(JSON.stringify({ error: 'Missing required game data' }));
+          return;
         }
 
         await saveGameResult(gameData);
 
-        return res.status(200).json({
+        res.writeHead(200, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({
           success: true,
           message: 'Game result saved successfully'
-        });
+        }));
+        return;
 
       default:
-        res.setHeader('Allow', ['GET', 'POST']);
-        return res.status(405).json({ error: `Method ${req.method} not allowed` });
+        res.writeHead(405, { 'Content-Type': 'application/json', 'Allow': 'GET, POST' });
+        res.end(JSON.stringify({ error: `Method ${req.method} not allowed` }));
+        return;
     }
   } catch (error) {
     console.error('Sudoku API Error:', error);
-    return res.status(500).json({
+    res.writeHead(500, { 'Content-Type': 'application/json' });
+    res.end(JSON.stringify({
       error: 'Internal server error',
       details: process.env.NODE_ENV === 'development' ? error.message : undefined
-    });
+    }));
   }
 };
