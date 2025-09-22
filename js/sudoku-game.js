@@ -702,7 +702,13 @@ class SudokuGame {
         // Update button states
         const pauseButton = document.getElementById('pause-button');
         if (pauseButton) {
-            pauseButton.textContent = this.isPaused ? '▶️' : '⏸️';
+            if (this.isPaused) {
+                pauseButton.innerHTML = '<i class="fas fa-play"></i>';
+                pauseButton.title = 'Resume Game';
+            } else {
+                pauseButton.innerHTML = '<i class="fas fa-pause"></i>';
+                pauseButton.title = 'Pause Game';
+            }
             pauseButton.disabled = this.isComplete;
         }
 
@@ -753,6 +759,7 @@ class SudokuGame {
         } else {
             this.historyIndex++;
         }
+
     }
 
     undo() {
@@ -763,9 +770,8 @@ class SudokuGame {
             this.historyIndex--;
             const previousState = this.history[this.historyIndex];
             this.restoreState(previousState);
-            console.log(`Undo: restored state at index ${this.historyIndex}`);
+            this.showMessage('Move undone', 'success');
         } else {
-            console.log('Undo: no previous state available');
             this.showMessage('Nothing to undo', 'info');
         }
     }
@@ -774,6 +780,9 @@ class SudokuGame {
         if (this.historyIndex < this.history.length - 1) {
             this.historyIndex++;
             this.restoreState(this.history[this.historyIndex]);
+            this.showMessage('Move redone', 'success');
+        } else {
+            this.showMessage('Nothing to redo', 'info');
         }
     }
 

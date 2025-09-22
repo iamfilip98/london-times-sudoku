@@ -2532,10 +2532,10 @@ select:focus-visible,
 /* Game Controls */
 .game-controls {
     display: flex;
+    flex-direction: column;
     justify-content: center;
     align-items: center;
     margin-bottom: 2rem;
-    flex-wrap: wrap;
     gap: 1rem;
 }
 
@@ -2580,6 +2580,8 @@ select:focus-visible,
 .game-buttons {
     display: flex;
     gap: 1rem;
+    flex-wrap: wrap;
+    justify-content: center;
 }
 
 .game-btn {

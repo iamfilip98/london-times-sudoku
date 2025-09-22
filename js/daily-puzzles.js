@@ -226,6 +226,8 @@ class DailyPuzzlesManager {
         if (this.sudokuGame && this.sudokuGame.selectedCell) {
             const { row, col } = this.sudokuGame.selectedCell;
             this.sudokuGame.clearCell(row, col);
+        } else {
+            this.showMessage('Please select a cell first', 'info');
         }
     }
 
@@ -458,7 +460,7 @@ class DailyPuzzlesManager {
                         ${buttonText}
                     </button>
                     ${completed ? `<div class="completion-details">
-                        <div>Time: ${completed.time && completed.time > 0 ? this.formatTime(completed.time) : 'In Progress'}</div>
+                        <div>Time: ${completed.time && completed.time > 0 ? this.formatTime(completed.time) : 'Completed'}</div>
                         <div>Mistakes: ${completed.mistakes !== undefined ? completed.mistakes : 0}</div>
                         <div>Score: ${this.calculateScore(completed)}</div>
                     </div>` : ''}
