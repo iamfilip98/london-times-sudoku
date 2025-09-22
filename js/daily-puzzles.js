@@ -255,14 +255,24 @@ class DailyPuzzlesManager {
         const gameKey = `${result.date}-${result.player}-${result.difficulty}`;
         this.dailyCompletions[gameKey] = result;
 
-        // Save to database only - no localStorage fallback
+        // Save to database with better error handling
         try {
-            await this.saveGameToDatabase(result);
-            console.log('Game successfully saved to database');
+            const saveResult = await this.saveGameToDatabase(result);
+            console.log('Game successfully saved:', saveResult);
+
+            // Show success message based on save result
+            if (saveResult && saveResult.message) {
+                this.showMessage(saveResult.message, 'success');
+            } else {
+                this.showMessage('Game completed and saved successfully!', 'success');
+            }
         } catch (error) {
             console.error('Failed to save to database:', error);
-            this.showMessage('Failed to save game. Please try again.', 'error');
-            throw error; // Don't continue if save fails
+
+            // Still allow the game to complete, but show warning
+            this.showMessage('Game completed! Note: Could not save to database. Your progress is recorded locally.', 'warning');
+
+            // Don't throw error - allow game completion to proceed
         }
 
         // Call main app's recording method

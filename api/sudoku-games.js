@@ -70,14 +70,17 @@ async function initSudokuTables() {
 // Save a completed Sudoku game using custom function
 async function saveGameResult(gameData) {
   if (!useDatabase) {
-    // Mock response when database is not available
-    console.log('Mock: Game result saved:', gameData);
-    return true;
+    console.log('⚠️  Database not available, game result saved locally only:', gameData);
+    return { success: true, message: 'Game completed successfully (local mode)' };
   }
 
   try {
     checkDatabase();
     const { date, player, difficulty, time, mistakes, hintsUsed, completed, score } = gameData;
+
+    console.log('💾 Attempting to save game result:', {
+      date, player, difficulty, time, mistakes, hintsUsed, completed, score
+    });
 
     // Use custom PostgreSQL function
     const { data, error } = await supabase.rpc('save_game_result', {
@@ -91,12 +94,15 @@ async function saveGameResult(gameData) {
       p_score: score || null
     });
 
-    if (error) throw error;
+    if (error) {
+      console.error('❌ Database save error:', error);
+      throw error;
+    }
 
     console.log('✅ Game result saved successfully:', data);
-    return true;
+    return data || { success: true, message: 'Game result saved successfully' };
   } catch (error) {
-    console.error('Failed to save game result:', error);
+    console.error('💥 Failed to save game result:', error.message || error);
     throw error;
   }
 }

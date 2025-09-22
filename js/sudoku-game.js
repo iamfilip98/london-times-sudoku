@@ -218,14 +218,12 @@ class SudokuGame {
                 this.highlightConflicts([...conflicts, [row, col]]);
             }
 
-            // Show appropriate error message
+            // Show appropriate error message (scoped to game area only)
             if (hasConflicts) {
                 this.showErrorMessage(`Invalid placement! This number conflicts with existing numbers.`);
             } else {
                 this.showErrorMessage(`Incorrect number! This is not the solution for this cell.`);
             }
-
-            // Keep error highlighting visible until the user fixes it
         } else {
             // Valid placement - clear error state only for this cell
             this.clearCellError(row, col);
@@ -247,6 +245,11 @@ class SudokuGame {
     }
 
     toggleCandidate(row, col, number) {
+        // Can't modify given clues or cells with values
+        if (this.puzzle[row][col] !== this.EMPTY || this.currentGrid[row][col] !== this.EMPTY) {
+            return;
+        }
+
         // Save state before making changes to candidates
         this.saveState(false);
 
@@ -748,6 +751,9 @@ class SudokuGame {
             this.historyIndex--;
             const previousState = this.history[this.historyIndex];
             this.restoreState(previousState);
+            console.log(`Undo: restored state at index ${this.historyIndex}`);
+        } else {
+            console.log('Undo: no previous state available');
         }
     }
 
