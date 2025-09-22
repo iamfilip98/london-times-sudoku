@@ -1,47 +1,30 @@
-const { Pool } = require('pg');
+const { createClient } = require('@supabase/supabase-js');
 
-let pool = null;
+let supabase = null;
 let useDatabase = false;
 
-// Initialize database connection only if environment variables are set
-if (process.env.POSTGRES_URL) {
+// Initialize Supabase client
+if (process.env.SUPABASE_URL && process.env.SUPABASE_SERVICE_ROLE_KEY) {
   try {
-    pool = new Pool({
-      connectionString: process.env.POSTGRES_URL,
-      ssl: {
-        rejectUnauthorized: false
-      }
-    });
+    supabase = createClient(
+      process.env.SUPABASE_URL,
+      process.env.SUPABASE_SERVICE_ROLE_KEY
+    );
     useDatabase = true;
+    console.log('✅ Supabase client configured');
   } catch (error) {
-    console.warn('Database connection failed, using localStorage fallback:', error.message);
+    console.warn('Supabase client failed, using localStorage fallback:', error.message);
     useDatabase = false;
   }
 } else {
-  console.log('No database URL provided, using localStorage fallback');
+  console.log('No Supabase credentials provided, using localStorage fallback');
 }
 
-// Helper function to execute SQL queries
-async function sql(strings, ...values) {
-  if (!useDatabase || !pool) {
+// Helper function to check database availability
+function checkDatabase() {
+  if (!useDatabase || !supabase) {
     throw new Error('Database not available');
   }
-
-  let query = '';
-  const params = [];
-  let paramIndex = 1;
-
-  for (let i = 0; i < strings.length; i++) {
-    query += strings[i];
-    if (i < values.length) {
-      query += `$${paramIndex}`;
-      params.push(values[i]);
-      paramIndex++;
-    }
-  }
-
-  const result = await pool.query(query, params);
-  return { rows: result.rows };
 }
 
 // Initialize database tables for Sudoku games
@@ -84,7 +67,7 @@ async function initSudokuTables() {
   }
 }
 
-// Save a completed Sudoku game
+// Save a completed Sudoku game using custom function
 async function saveGameResult(gameData) {
   if (!useDatabase) {
     // Mock response when database is not available
@@ -93,32 +76,24 @@ async function saveGameResult(gameData) {
   }
 
   try {
+    checkDatabase();
     const { date, player, difficulty, time, mistakes, hintsUsed, completed, score } = gameData;
 
-    // Insert the game result
-    await sql`
-      INSERT INTO sudoku_games (date, player, difficulty, time_seconds, mistakes, hints_used, completed, score)
-      VALUES (${date}, ${player}, ${difficulty}, ${time}, ${mistakes}, ${hintsUsed}, ${completed}, ${score})
-      ON CONFLICT (date, player, difficulty)
-      DO UPDATE SET
-        time_seconds = ${time},
-        mistakes = ${mistakes},
-        hints_used = ${hintsUsed},
-        completed = ${completed},
-        score = ${score},
-        created_at = NOW()
-    `;
+    // Use custom PostgreSQL function
+    const { data, error } = await supabase.rpc('save_game_result', {
+      p_date: date,
+      p_player: player,
+      p_difficulty: difficulty,
+      p_time_seconds: time,
+      p_mistakes: mistakes || 0,
+      p_hints_used: hintsUsed || 0,
+      p_completed: completed || true,
+      p_score: score || null
+    });
 
-    // Mark as completed in daily_completions
-    await sql`
-      INSERT INTO daily_completions (date, player, difficulty, completed, completed_at)
-      VALUES (${date}, ${player}, ${difficulty}, ${completed}, NOW())
-      ON CONFLICT (date, player, difficulty)
-      DO UPDATE SET
-        completed = ${completed},
-        completed_at = NOW()
-    `;
+    if (error) throw error;
 
+    console.log('✅ Game result saved successfully:', data);
     return true;
   } catch (error) {
     console.error('Failed to save game result:', error);
@@ -135,13 +110,16 @@ async function getDailyCompletions(player, date) {
   }
 
   try {
-    const result = await sql`
-      SELECT difficulty, completed, completed_at
-      FROM daily_completions
-      WHERE player = ${player} AND date = ${date}
-    `;
+    checkDatabase();
+    const { data, error } = await supabase
+      .from('daily_completions')
+      .select('difficulty, completed, completed_at')
+      .eq('player', player)
+      .eq('date', date);
 
-    return result.rows.reduce((acc, row) => {
+    if (error) throw error;
+
+    return data.reduce((acc, row) => {
       acc[row.difficulty] = {
         completed: row.completed,
         completedAt: row.completed_at
@@ -163,13 +141,16 @@ async function getGameResults(player, date) {
   }
 
   try {
-    const result = await sql`
-      SELECT difficulty, time_seconds, mistakes, hints_used, score, completed
-      FROM sudoku_games
-      WHERE player = ${player} AND date = ${date}
-    `;
+    checkDatabase();
+    const { data, error } = await supabase
+      .from('sudoku_games')
+      .select('difficulty, time_seconds, mistakes, hints_used, score, completed')
+      .eq('player', player)
+      .eq('date', date);
 
-    return result.rows.reduce((acc, row) => {
+    if (error) throw error;
+
+    return data.reduce((acc, row) => {
       acc[row.difficulty] = {
         time: row.time_seconds,
         mistakes: row.mistakes,
@@ -194,16 +175,37 @@ async function getLeaderboard(difficulty, limit = 10) {
   }
 
   try {
-    const result = await sql`
-      SELECT player, MIN(time_seconds) as best_time, MAX(score) as best_score, COUNT(*) as games_played
-      FROM sudoku_games
-      WHERE difficulty = ${difficulty} AND completed = true
-      GROUP BY player
-      ORDER BY best_score DESC, best_time ASC
-      LIMIT ${limit}
-    `;
+    checkDatabase();
+    const { data, error } = await supabase
+      .from('sudoku_games')
+      .select('player, time_seconds, score')
+      .eq('difficulty', difficulty)
+      .eq('completed', true)
+      .order('score', { ascending: false })
+      .limit(limit);
 
-    return result.rows;
+    if (error) throw error;
+
+    // Process data to create leaderboard (simplified version)
+    const playerStats = {};
+    data.forEach(game => {
+      if (!playerStats[game.player]) {
+        playerStats[game.player] = {
+          player: game.player,
+          best_time: game.time_seconds,
+          best_score: game.score,
+          games_played: 1
+        };
+      } else {
+        playerStats[game.player].best_time = Math.min(playerStats[game.player].best_time, game.time_seconds);
+        playerStats[game.player].best_score = Math.max(playerStats[game.player].best_score, game.score);
+        playerStats[game.player].games_played++;
+      }
+    });
+
+    return Object.values(playerStats)
+      .sort((a, b) => b.best_score - a.best_score || a.best_time - b.best_time)
+      .slice(0, limit);
   } catch (error) {
     console.error('Failed to get leaderboard:', error);
     throw error;
@@ -211,17 +213,7 @@ async function getLeaderboard(difficulty, limit = 10) {
 }
 
 module.exports = async function handler(req, res) {
-  // Initialize database on first request (only if database is available)
-  if (useDatabase) {
-    try {
-      await initSudokuTables();
-    } catch (error) {
-      console.error('Sudoku tables initialization failed:', error);
-      res.writeHead(500, { 'Content-Type': 'application/json' });
-      res.end(JSON.stringify({ error: 'Database initialization failed' }));
-      return;
-    }
-  }
+  // Tables are now created manually, skip initialization
 
   // Set CORS headers
   res.setHeader('Access-Control-Allow-Origin', '*');

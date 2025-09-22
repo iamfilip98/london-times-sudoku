@@ -223,9 +223,9 @@ class SudokuChampionship {
                 });
             }
         } catch (error) {
-            console.error('Failed to load from database, using localStorage:', error);
-            // Fallback to localStorage
-            dailyCompletions = JSON.parse(localStorage.getItem('dailyCompletions') || '{}');
+            console.error('Failed to load from database:', error);
+            // No localStorage fallback - only use database
+            dailyCompletions = {};
         }
 
         console.log('Updating battle results for date:', today);
@@ -310,41 +310,8 @@ class SudokuChampionship {
 
     async loadData() {
         try {
-            // Check if we have localStorage data to migrate
-            const localEntries = localStorage.getItem('sudokuChampionshipEntries');
-            const localAchievements = localStorage.getItem('sudokuChampionshipAchievements');
-            const localStreaks = localStorage.getItem('sudokuChampionshipStreaks');
-            const localChallenges = localStorage.getItem('sudokuChampionshipChallenges');
-
-            if (localEntries || localAchievements || localStreaks || localChallenges) {
-                // Migrate localStorage data to database
-                const migrationData = {
-                    entries: localEntries ? JSON.parse(localEntries) : [],
-                    achievements: localAchievements ? JSON.parse(localAchievements) : [],
-                    streaks: localStreaks ? JSON.parse(localStreaks) : null,
-                    challenges: localChallenges ? JSON.parse(localChallenges) : []
-                };
-
-                await fetch('/api/entries', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json'
-                    },
-                    body: JSON.stringify({
-                        migrate: true,
-                        migrationData
-                    })
-                });
-
-                // Clear localStorage after successful migration
-                localStorage.removeItem('sudokuChampionshipEntries');
-                localStorage.removeItem('sudokuChampionshipAchievements');
-                localStorage.removeItem('sudokuChampionshipStreaks');
-                localStorage.removeItem('sudokuChampionshipChallenges');
-                localStorage.removeItem('sudokuChampionshipRecords');
-
-                console.log('Successfully migrated localStorage data to database');
-            }
+            // Migration has been completed - localStorage data is no longer used
+            console.log('Loading data from database only');
 
             // Load data from database - optimized with parallel loading
             const [entries, bulkData] = await Promise.all([
@@ -673,12 +640,9 @@ class SudokuChampionship {
 
             todaysGames = allGames;
         } catch (error) {
-            console.error('Failed to load today\'s results from database, using localStorage:', error);
-            // Fallback to localStorage
-            const dailyCompletions = JSON.parse(localStorage.getItem('dailyCompletions') || '{}');
-            todaysGames = Object.entries(dailyCompletions)
-                .filter(([key, game]) => key.startsWith(today))
-                .map(([key, game]) => game);
+            console.error('Failed to load today\'s results from database:', error);
+            // No localStorage fallback - only use database
+            todaysGames = [];
         }
 
         if (todaysGames.length === 0) {

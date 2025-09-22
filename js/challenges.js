@@ -771,27 +771,7 @@ class ChallengesManager {
 
     async loadCompletedChallenges() {
         try {
-            // Check for localStorage data first (migration)
-            const localData = localStorage.getItem('sudokuCompletedChallenges');
-            if (localData) {
-                const challenges = JSON.parse(localData);
-                // Migrate to database
-                for (const challenge of challenges) {
-                    await fetch('/api/stats', {
-                        method: 'POST',
-                        headers: {
-                            'Content-Type': 'application/json'
-                        },
-                        body: JSON.stringify({
-                            type: 'challenge',
-                            data: challenge
-                        })
-                    });
-                }
-                localStorage.removeItem('sudokuCompletedChallenges');
-                return challenges;
-            }
-
+            // Load completed challenges from database only
             const response = await fetch('/api/stats?type=challenges');
             if (!response.ok) {
                 throw new Error('Failed to load challenges');

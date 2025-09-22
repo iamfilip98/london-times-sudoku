@@ -254,18 +254,14 @@ class DailyPuzzlesManager {
         const gameKey = `${result.date}-${result.player}-${result.difficulty}`;
         this.dailyCompletions[gameKey] = result;
 
-        // Save to database first, then localStorage as backup
+        // Save to database only - no localStorage fallback
         try {
             await this.saveGameToDatabase(result);
-            // Only save to localStorage after successful database save
-            localStorage.setItem('sudokuGameResults', JSON.stringify(this.gameResults));
-            localStorage.setItem('dailyCompletions', JSON.stringify(this.dailyCompletions));
+            console.log('Game successfully saved to database');
         } catch (error) {
             console.error('Failed to save to database:', error);
-            // Still save to localStorage as fallback
-            localStorage.setItem('sudokuGameResults', JSON.stringify(this.gameResults));
-            localStorage.setItem('dailyCompletions', JSON.stringify(this.dailyCompletions));
-            this.showMessage('Game saved locally. Will sync when online.', 'warning');
+            this.showMessage('Failed to save game. Please try again.', 'error');
+            throw error; // Don't continue if save fails
         }
 
         // Call main app's recording method
@@ -337,12 +333,11 @@ class DailyPuzzlesManager {
                     }
                 });
 
-                // Update localStorage with database data
-                localStorage.setItem('dailyCompletions', JSON.stringify(this.dailyCompletions));
+                console.log('Daily completions loaded from database');
             }
         } catch (error) {
             console.error('Failed to load completions from database:', error);
-            // Fall back to localStorage
+            // No localStorage fallback - database only
         }
     }
 
@@ -383,19 +378,33 @@ class DailyPuzzlesManager {
         }
     }
 
-    loadGameHistory() {
-        const saved = localStorage.getItem('sudokuGameResults');
-        if (saved) {
-            this.gameResults = JSON.parse(saved);
-            this.updateGameHistory();
+    async loadGameHistory() {
+        // Load game history from database only
+        try {
+            const today = new Date().toISOString().split('T')[0];
+            const response = await fetch(`/api/sudoku-games?action=results&player=${this.currentPlayer}&date=${today}`);
+            if (response.ok) {
+                const results = await response.json();
+                this.gameResults = Object.entries(results).map(([difficulty, data]) => ({
+                    date: today,
+                    player: this.currentPlayer,
+                    difficulty: difficulty,
+                    time: data.time,
+                    mistakes: data.mistakes,
+                    completed: data.completed
+                }));
+                this.updateGameHistory();
+            }
+        } catch (error) {
+            console.error('Failed to load game history from database:', error);
+            this.gameResults = [];
         }
     }
 
     loadDailyCompletions() {
-        const saved = localStorage.getItem('dailyCompletions');
-        if (saved) {
-            this.dailyCompletions = JSON.parse(saved);
-        }
+        // Daily completions are now loaded from database only
+        // This method is kept for backwards compatibility but does nothing
+        console.log('Daily completions will be loaded from database');
     }
 
     updateDailyGamesDisplay() {
