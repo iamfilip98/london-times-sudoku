@@ -330,7 +330,7 @@ class DailyPuzzlesManager {
                             player: this.currentPlayer,
                             difficulty: difficulty,
                             completed: true,
-                            time: completions[difficulty].time || 0,
+                            time: completions[difficulty].time > 0 ? completions[difficulty].time : null,
                             mistakes: completions[difficulty].mistakes || 0,
                             hintsUsed: completions[difficulty].hintsUsed || 0
                         };
@@ -433,7 +433,7 @@ class DailyPuzzlesManager {
             if (completed) {
                 statusClass = 'completed';
                 statusText = 'Completed';
-                buttonText = `✓ ${this.formatTime(completed.time)}`;
+                buttonText = completed.time ? `✓ ${this.formatTime(completed.time)}` : '✓ Completed';
                 disabled = 'disabled';
             }
 
@@ -448,7 +448,7 @@ class DailyPuzzlesManager {
                         ${buttonText}
                     </button>
                     ${completed ? `<div class="completion-details">
-                        <div>Time: ${this.formatTime(completed.time)}</div>
+                        <div>Time: ${completed.time ? this.formatTime(completed.time) : 'N/A'}</div>
                         <div>Mistakes: ${completed.mistakes || 0}</div>
                         <div>Score: ${this.calculateScore(completed)}</div>
                     </div>` : ''}

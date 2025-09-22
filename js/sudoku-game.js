@@ -765,6 +765,9 @@ class SudokuGame {
         this.mistakes = state.mistakes;
         this.scoreCalculationMistakes = state.scoreCalculationMistakes || state.mistakes; // Fallback for old saves
 
+        // Clear all error highlights when restoring state
+        this.clearErrorHighlights();
+
         this.renderGrid();
         this.updateUI();
 
