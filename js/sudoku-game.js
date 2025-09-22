@@ -557,6 +557,9 @@ class SudokuGame {
 
         cell.className = baseClasses.join(' ');
 
+        // Force clear the cell content first to ensure numbers are removed
+        cell.innerHTML = '';
+
         // Update content
         if (value !== this.EMPTY) {
             cell.innerHTML = `<span class="cell-number">${value}</span>`;
