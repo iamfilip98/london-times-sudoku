@@ -333,6 +333,9 @@ class SudokuGame {
                     delete cell.dataset.hasError;
                 }
 
+                // Restore candidates for this cell based on current game state
+                this.restoreCandidatesForCell(row, col);
+
                 this.showMessage('Number cleared', 'success');
             }
         }
@@ -846,10 +849,6 @@ class SudokuGame {
             this.selectCell(row, col);
         }
 
-        console.log('State restored successfully:', {
-            mistakes: this.mistakes,
-            scoreCalculationMistakes: this.scoreCalculationMistakes
-        });
     }
 
     getHint() {
@@ -1047,6 +1046,24 @@ class SudokuGame {
         const possibleValues = this.getPossibleValues(row, col);
         const key = `${row}-${col}`;
         this.candidates[key] = new Set(possibleValues);
+    }
+
+    restoreCandidatesForCell(row, col) {
+        // Only restore candidates if the cell is empty and not a given clue
+        if (this.puzzle[row][col] !== this.EMPTY || this.currentGrid[row][col] !== this.EMPTY) {
+            return;
+        }
+
+        // Check if this difficulty level should have candidates auto-generated
+        if (this.difficulty === 'medium' || this.difficulty === 'hard') {
+            const possibleValues = this.getPossibleValues(row, col);
+            if (possibleValues.length > 0) {
+                const key = `${row}-${col}`;
+                this.candidates[key] = new Set(possibleValues);
+                // Mark as auto-generated, not user-entered
+                // Don't add to userCandidates as these are system-generated
+            }
+        }
     }
 
     revealCell() {

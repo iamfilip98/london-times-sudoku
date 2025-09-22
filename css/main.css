@@ -2622,15 +2622,17 @@ select:focus-visible,
 
 /* Fixed width for candidates button to prevent layout shift */
 #global-candidates-button {
-    min-width: 200px;
+    min-width: 220px;
+    width: 220px;
     white-space: nowrap;
+    text-align: center;
+    box-sizing: border-box;
 }
 
 /* Sudoku Container */
 .sudoku-container {
     display: flex;
     justify-content: center;
-    margin-bottom: 2rem;
     position: relative;
     padding: 1rem;
     min-height: 750px;
@@ -2863,7 +2865,6 @@ select:focus-visible,
 .action-row {
     display: flex;
     gap: 1rem;
-    margin-top: 1rem;
     padding: 1rem 0;
 }
 
