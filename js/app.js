@@ -192,7 +192,8 @@ class SudokuChampionship {
             if (faidaoResponse.ok) {
                 const faidaoResults = await faidaoResponse.json();
                 Object.keys(faidaoResults).forEach(difficulty => {
-                    if (faidaoResults[difficulty].completed) {
+                    // Only include games with valid time and completed status
+                    if (faidaoResults[difficulty].completed && faidaoResults[difficulty].time > 0) {
                         const gameKey = `${today}-faidao-${difficulty}`;
                         dailyCompletions[gameKey] = {
                             date: today,
@@ -209,7 +210,8 @@ class SudokuChampionship {
             if (filipResponse.ok) {
                 const filipResults = await filipResponse.json();
                 Object.keys(filipResults).forEach(difficulty => {
-                    if (filipResults[difficulty].completed) {
+                    // Only include games with valid time and completed status
+                    if (filipResults[difficulty].completed && filipResults[difficulty].time > 0) {
                         const gameKey = `${today}-filip-${difficulty}`;
                         dailyCompletions[gameKey] = {
                             date: today,
@@ -611,7 +613,8 @@ class SudokuChampionship {
             if (faidaoResponse.ok) {
                 const faidaoResults = await faidaoResponse.json();
                 Object.keys(faidaoResults).forEach(difficulty => {
-                    if (faidaoResults[difficulty].completed) {
+                    // Only include games with valid time and completed status
+                    if (faidaoResults[difficulty].completed && faidaoResults[difficulty].time > 0) {
                         allGames.push({
                             player: 'faidao',
                             difficulty: difficulty,
@@ -626,7 +629,8 @@ class SudokuChampionship {
             if (filipResponse.ok) {
                 const filipResults = await filipResponse.json();
                 Object.keys(filipResults).forEach(difficulty => {
-                    if (filipResults[difficulty].completed) {
+                    // Only include games with valid time and completed status
+                    if (filipResults[difficulty].completed && filipResults[difficulty].time > 0) {
                         allGames.push({
                             player: 'filip',
                             difficulty: difficulty,
