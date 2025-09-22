@@ -61,7 +61,17 @@ class SudokuGame {
     }
 
     handleKeyPress(e) {
-        if (!this.selectedCell || this.isPaused || this.isComplete) return;
+        if (this.isPaused || this.isComplete) return;
+
+        if (!this.selectedCell) {
+            // Allow certain keys even without selection
+            if (['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight'].includes(e.key)) {
+                // If no cell selected, select the center cell
+                this.selectCell(4, 4);
+                return;
+            }
+            return;
+        }
 
         const { row, col } = this.selectedCell;
 
@@ -191,8 +201,18 @@ class SudokuGame {
     setNumber(row, col, number) {
         // Check for conflicts BEFORE making any changes
         const conflicts = this.generator.getConflicts(this.currentGrid, row, col, number);
+        const isCorrectSolution = this.solution && this.solution[row][col] === number;
+        const hasConflicts = conflicts.length > 0;
 
-        // Save state for undo (mark as number entry) - include mistakes in the saved state
+        // If number is invalid (has conflicts), don't place it at all
+        if (hasConflicts) {
+            // Show error message and highlight conflicts temporarily
+            this.showErrorMessage(`Invalid placement! This number conflicts with existing numbers.`);
+            this.highlightConflicts([...conflicts, [row, col]]);
+            return; // Don't place the number
+        }
+
+        // Save state for undo only when we're actually placing a number
         this.saveState(true);
 
         // Clear any candidates for this cell
@@ -201,31 +221,18 @@ class SudokuGame {
         // Set the number
         this.currentGrid[row][col] = number;
 
-        // Real-time error checking and feedback
-        const isCorrectSolution = this.solution && this.solution[row][col] === number;
-        const hasConflicts = conflicts.length > 0;
-
-        if (hasConflicts || !isCorrectSolution) {
+        // Check if it's the correct solution
+        if (!isCorrectSolution) {
+            // Incorrect but not conflicting - count as mistake but allow placement
             this.mistakes++;
             this.scoreCalculationMistakes++;
             this.updateMistakesDisplay();
 
-            // Mark the cell as error immediately with red text
+            // Mark the cell as error
             this.markCellAsError(row, col, true);
-
-            // Highlight all conflicting cells if there are conflicts
-            if (hasConflicts) {
-                this.highlightConflicts([...conflicts, [row, col]]);
-            }
-
-            // Show appropriate error message (scoped to game area only)
-            if (hasConflicts) {
-                this.showErrorMessage(`Invalid placement! This number conflicts with existing numbers.`);
-            } else {
-                this.showErrorMessage(`Incorrect number! This is not the solution for this cell.`);
-            }
+            this.showErrorMessage(`Incorrect number! This is not the solution for this cell.`);
         } else {
-            // Valid placement - clear error state only for this cell
+            // Valid placement - clear error state for this cell
             this.clearCellError(row, col);
             this.showSuccessMessage(`Good move!`);
         }
@@ -246,7 +253,13 @@ class SudokuGame {
 
     toggleCandidate(row, col, number) {
         // Can't modify given clues or cells with values
-        if (this.puzzle[row][col] !== this.EMPTY || this.currentGrid[row][col] !== this.EMPTY) {
+        if (this.puzzle[row][col] !== this.EMPTY) {
+            this.showMessage('Cannot edit candidates for given numbers', 'info');
+            return;
+        }
+
+        if (this.currentGrid[row][col] !== this.EMPTY) {
+            this.showMessage('Cannot edit candidates when cell has a number', 'info');
             return;
         }
 
@@ -271,9 +284,11 @@ class SudokuGame {
             if (this.userCandidates[key].size === 0) {
                 delete this.userCandidates[key];
             }
+            this.showMessage(`Candidate ${number} removed`, 'success');
         } else {
             this.candidates[key].add(number);
             this.userCandidates[key].add(number);
+            this.showMessage(`Candidate ${number} added`, 'success');
         }
 
         this.renderCell(row, col);
@@ -281,23 +296,42 @@ class SudokuGame {
 
     clearCell(row, col) {
         // Can't clear given clues
-        if (this.puzzle[row][col] !== this.EMPTY) return;
+        if (this.puzzle[row][col] !== this.EMPTY) {
+            this.showMessage('Cannot clear given numbers', 'info');
+            return;
+        }
+
+        // Check if there's anything to clear
+        const hasNumber = this.currentGrid[row][col] !== this.EMPTY;
+        const hasCandidates = this.candidates[`${row}-${col}`] && this.candidates[`${row}-${col}`].size > 0;
+
+        if (!hasNumber && !hasCandidates) {
+            this.showMessage('Cell is already empty', 'info');
+            return;
+        }
 
         if (this.currentMode === 'candidate') {
             // Clear all candidates (don't save as number entry)
-            this.saveState(false);
-            delete this.candidates[`${row}-${col}`];
-            delete this.userCandidates[`${row}-${col}`];
+            if (hasCandidates) {
+                this.saveState(false);
+                delete this.candidates[`${row}-${col}`];
+                delete this.userCandidates[`${row}-${col}`];
+                this.showMessage('Candidates cleared', 'success');
+            }
         } else {
             // Clear the number (save as number entry since it affects the number grid)
-            this.saveState(true);
-            this.currentGrid[row][col] = this.EMPTY;
+            if (hasNumber) {
+                this.saveState(true);
+                this.currentGrid[row][col] = this.EMPTY;
 
-            // Clear error highlighting if this cell had an error
-            const cell = document.querySelector(`[data-row="${row}"][data-col="${col}"]`);
-            if (cell && cell.dataset.hasError) {
-                cell.classList.remove('error');
-                delete cell.dataset.hasError;
+                // Clear error highlighting if this cell had an error
+                const cell = document.querySelector(`[data-row="${row}"][data-col="${col}"]`);
+                if (cell && cell.dataset.hasError) {
+                    cell.classList.remove('error');
+                    delete cell.dataset.hasError;
+                }
+
+                this.showMessage('Number cleared', 'success');
             }
         }
 
