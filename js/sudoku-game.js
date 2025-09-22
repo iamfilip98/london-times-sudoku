@@ -448,7 +448,7 @@ class SudokuGame {
                     cellContent = `<span class="cell-number">${value}</span>`;
                 } else {
                     // Always include candidates div to prevent layout shifts
-                    cellContent = `<div class="candidates">${this.generateCandidatesHTML(candidates)}</div>`;
+                    cellContent = `<div class="candidates">${this.generateCandidatesHTML(candidates, row, col)}</div>`;
                 }
 
                 html += `
@@ -465,10 +465,20 @@ class SudokuGame {
         return html;
     }
 
-    generateCandidatesHTML(candidates) {
+    generateCandidatesHTML(candidates, row, col) {
         let html = '';
+
+        // Determine what candidates to show
+        let candidatesToShow = candidates;
+
+        // If global candidates are visible and this cell is empty, show all possible values
+        if (this.globalCandidatesVisible && this.currentGrid[row][col] === this.EMPTY) {
+            const possibleValues = this.getPossibleValues(row, col);
+            candidatesToShow = new Set(possibleValues);
+        }
+
         for (let num = 1; num <= 9; num++) {
-            const hasCandidate = candidates.has(num);
+            const hasCandidate = candidatesToShow.has(num);
             html += `<span class="candidate ${hasCandidate ? 'active' : ''}">${hasCandidate ? num : ''}</span>`;
         }
         return html;
@@ -511,7 +521,7 @@ class SudokuGame {
             cell.innerHTML = `<span class="cell-number">${value}</span>`;
         } else {
             // Always include candidates div to prevent layout shifts
-            cell.innerHTML = `<div class="candidates">${this.generateCandidatesHTML(candidates)}</div>`;
+            cell.innerHTML = `<div class="candidates">${this.generateCandidatesHTML(candidates, row, col)}</div>`;
         }
     }
 
@@ -747,13 +757,14 @@ class SudokuGame {
         // Undo exactly one action at a time
         // Check if we have a previous state to restore
         if (this.historyIndex > 0) {
-            // Get the previous state before the current one
+            // Move back to the previous state
             this.historyIndex--;
             const previousState = this.history[this.historyIndex];
             this.restoreState(previousState);
             console.log(`Undo: restored state at index ${this.historyIndex}`);
         } else {
             console.log('Undo: no previous state available');
+            this.showMessage('Nothing to undo', 'info');
         }
     }
 
@@ -765,6 +776,7 @@ class SudokuGame {
     }
 
     restoreState(state) {
+        // Restore complete game state
         this.currentGrid = state.grid.map(row => [...row]);
         this.candidates = JSON.parse(JSON.stringify(state.candidates));
         this.userCandidates = JSON.parse(JSON.stringify(state.userCandidates || {})); // Fallback for old saves
@@ -774,6 +786,7 @@ class SudokuGame {
         // Clear all error highlights when restoring state
         this.clearErrorHighlights();
 
+        // Re-render everything to ensure consistency
         this.renderGrid();
         this.updateUI();
 
@@ -785,6 +798,11 @@ class SudokuGame {
             const { row, col } = this.selectedCell;
             this.selectCell(row, col);
         }
+
+        console.log('State restored successfully:', {
+            mistakes: this.mistakes,
+            scoreCalculationMistakes: this.scoreCalculationMistakes
+        });
     }
 
     getHint() {
@@ -1158,45 +1176,19 @@ class SudokuGame {
 
     toggleGlobalCandidates() {
         // Toggle visibility without affecting game state or undo history
-
         this.globalCandidatesVisible = !this.globalCandidatesVisible;
-
-        if (this.globalCandidatesVisible) {
-            // Show all possible candidates in empty cells
-            this.showAllCandidates();
-        } else {
-            // Hide all candidates completely
-            this.hideAllCandidates();
-        }
-
         this.updateGlobalCandidatesButton();
         this.renderGrid();
     }
 
     showAllCandidates() {
-        // Generate candidates for all empty cells
-        for (let row = 0; row < this.SIZE; row++) {
-            for (let col = 0; col < this.SIZE; col++) {
-                if (this.currentGrid[row][col] === this.EMPTY) {
-                    const possibleValues = this.getPossibleValues(row, col);
-                    if (possibleValues.length > 0) {
-                        const key = `${row}-${col}`;
-                        this.candidates[key] = new Set(possibleValues);
-                    }
-                }
-            }
-        }
+        // This method now only affects display - no longer modifies this.candidates
+        // Display logic is handled in generateCandidatesHTML method
     }
 
     hideAllCandidates() {
-        // Only hide auto-generated candidates, keep user-entered ones
-        this.candidates = {};
-        // Restore user-entered candidates
-        for (const key in this.userCandidates) {
-            if (this.userCandidates[key].size > 0) {
-                this.candidates[key] = new Set(this.userCandidates[key]);
-            }
-        }
+        // This method now only affects display - no longer modifies this.candidates
+        // Display logic is handled in generateCandidatesHTML method
     }
 
     updateGlobalCandidatesButton() {
