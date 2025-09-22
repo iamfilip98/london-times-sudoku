@@ -423,7 +423,8 @@ class SudokuGame {
 
                 if (value !== this.EMPTY) {
                     cellContent = `<span class="cell-number">${value}</span>`;
-                } else if (candidates.size > 0) {
+                } else {
+                    // Always include candidates div to prevent layout shifts
                     cellContent = `<div class="candidates">${this.generateCandidatesHTML(candidates)}</div>`;
                 }
 
@@ -485,10 +486,9 @@ class SudokuGame {
         // Update content
         if (value !== this.EMPTY) {
             cell.innerHTML = `<span class="cell-number">${value}</span>`;
-        } else if (candidates.size > 0) {
-            cell.innerHTML = `<div class="candidates">${this.generateCandidatesHTML(candidates)}</div>`;
         } else {
-            cell.innerHTML = '';
+            // Always include candidates div to prevent layout shifts
+            cell.innerHTML = `<div class="candidates">${this.generateCandidatesHTML(candidates)}</div>`;
         }
     }
 
@@ -1131,8 +1131,8 @@ class SudokuGame {
             // Show all possible candidates in empty cells
             this.showAllCandidates();
         } else {
-            // Hide all candidates (except manually entered ones on hard/medium)
-            this.hideGlobalCandidates();
+            // Hide all candidates completely
+            this.hideAllCandidates();
         }
 
         this.updateGlobalCandidatesButton();
@@ -1154,29 +1154,9 @@ class SudokuGame {
         }
     }
 
-    hideGlobalCandidates() {
-        // Store manually entered candidates before clearing all
-        const manualCandidates = {};
-
-        // Preserve candidates that were manually entered (not part of global show)
-        // This allows users to keep their own notes while hiding auto-generated ones
-        for (const key in this.candidates) {
-            const [row, col] = key.split('-').map(Number);
-            if (this.currentGrid[row][col] === this.EMPTY && this.puzzle[row][col] === this.EMPTY) {
-                // Only preserve if this was likely a manual entry (smaller set of candidates)
-                if (this.candidates[key].size <= 3) {
-                    manualCandidates[key] = new Set(this.candidates[key]);
-                }
-            }
-        }
-
-        // Clear all candidates first
+    hideAllCandidates() {
+        // Clear all candidates completely when hiding
         this.candidates = {};
-
-        // Restore manual candidates for all difficulty levels
-        for (const key in manualCandidates) {
-            this.candidates[key] = manualCandidates[key];
-        }
     }
 
     updateGlobalCandidatesButton() {

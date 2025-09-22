@@ -2327,6 +2327,14 @@ select:focus-visible,
 @media (max-width: 768px) {
     .nav-content {
         padding: 1rem;
+        gap: 1rem;
+    }
+    .nav-user {
+        flex-shrink: 0;
+        min-width: fit-content;
+    }
+    .nav-user span {
+        display: none; /* Hide username text on mobile to save space */
     }
 
     .nav-links {

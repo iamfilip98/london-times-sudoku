@@ -328,7 +328,10 @@ class DailyPuzzlesManager {
                             date: today,
                             player: this.currentPlayer,
                             difficulty: difficulty,
-                            completed: true
+                            completed: true,
+                            time: completions[difficulty].time || 0,
+                            mistakes: completions[difficulty].mistakes || 0,
+                            hintsUsed: completions[difficulty].hintsUsed || 0
                         };
                     }
                 });
@@ -442,7 +445,7 @@ class DailyPuzzlesManager {
                     </button>
                     ${completed ? `<div class="completion-details">
                         <div>Time: ${this.formatTime(completed.time)}</div>
-                        <div>Mistakes: ${completed.mistakes}</div>
+                        <div>Mistakes: ${completed.mistakes || 0}</div>
                         <div>Score: ${this.calculateScore(completed)}</div>
                     </div>` : ''}
                 </div>
@@ -451,10 +454,22 @@ class DailyPuzzlesManager {
     }
 
     calculateScore(result) {
+        // Handle invalid or missing result data
+        if (!result || typeof result.time !== 'number' || typeof result.mistakes !== 'number') {
+            return 0;
+        }
+
         const multipliers = { easy: 1, medium: 1.5, hard: 2 };
-        const adjustedTime = result.time + (result.mistakes * 30);
+        const time = isNaN(result.time) ? 0 : result.time;
+        const mistakes = isNaN(result.mistakes) ? 0 : result.mistakes;
+        const difficulty = result.difficulty || 'medium';
+
+        // Ensure minimum time to avoid division by zero
+        const adjustedTime = Math.max(time + (mistakes * 30), 1);
         const adjustedMinutes = adjustedTime / 60;
-        const score = (1000 / adjustedMinutes) * multipliers[result.difficulty];
+        const multiplier = multipliers[difficulty] || 1;
+        const score = (1000 / adjustedMinutes) * multiplier;
+
         return Math.round(score);
     }
 
@@ -489,6 +504,11 @@ class DailyPuzzlesManager {
     }
 
     formatTime(seconds) {
+        // Handle invalid or missing time values
+        if (typeof seconds !== 'number' || isNaN(seconds) || seconds < 0) {
+            return '0:00';
+        }
+
         const minutes = Math.floor(seconds / 60);
         const remainingSeconds = seconds % 60;
         return `${minutes}:${remainingSeconds.toString().padStart(2, '0')}`;
