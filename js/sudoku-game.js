@@ -469,12 +469,14 @@ class SudokuGame {
         let html = '';
 
         // Determine what candidates to show
-        let candidatesToShow = candidates;
+        let candidatesToShow = new Set(candidates);
 
-        // If global candidates are visible and this cell is empty, show all possible values
+        // If global candidates are visible and this cell is empty, add auto-generated possibilities
+        // but preserve any manually entered candidates
         if (this.globalCandidatesVisible && this.currentGrid[row][col] === this.EMPTY) {
             const possibleValues = this.getPossibleValues(row, col);
-            candidatesToShow = new Set(possibleValues);
+            // Merge user candidates with auto-generated candidates
+            possibleValues.forEach(num => candidatesToShow.add(num));
         }
 
         for (let num = 1; num <= 9; num++) {
